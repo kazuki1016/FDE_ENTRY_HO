@@ -59,12 +59,22 @@ Andrej Karpathy の行動指針をベースに、本講座の7セクションの
 
 ### 5.1 コンテキスト設計（柱1）
 - LLMに渡すコンテキストは必要最小限にする
-- RAGの検索結果は上位k件に絞り、全文を流し込まない
+- RAGの検索結果は上位k件に絞り、全文を流し込まない（kのデフォルトは3とし、`config.py` の `TOP_K` 定数で管理する）
 - システムプロンプトに講座外の知識で回答しない旨を明記する
+- コンテキストに該当情報がない場合は「講座内容に該当する情報がありません」という文言を含む日本語で回答するよう、システムプロンプトに明記する
+- 回答は常に日本語で生成する（英語での回答は禁止）
 
 ### 5.2 制約設計 / フィードフォワード（柱2）
 - 実装前に必ず `req.md` の受け入れ基準を確認する
 - 新規ファイル作成時は、このCLAUDE.mdの制約に違反しないか確認する
+- spec.md に残る `[要確認]` 項目は、以下の3段階で扱う。値を無断で確定させたまま実装を進めない:
+  1. **確定値**: ユーザーに確認済みの値。`config.py` に定数として記録する
+  2. **推奨デフォルト値（PENDING）**: 未確認だが実装を進めるための合理的な既定値がある項目。`config.py` に `# [PENDING] ユーザー未確認。デフォルト値を使用中` というコメント付きで記載し、実装をブロックしない。対象: embeddingモデル名、チャンクサイズ/overlap、距離関数、Anthropicモデル名、セクション境界検出方法、`GET /health`・`GET /stats` の認証要否（既定は認証不要）、`last_updated` のフォーマット（既定はISO 8601）
+  3. **ブロック値**: 合理的な推測が不可能、またはセキュリティ・データ配置に直結する項目。値が確定するまで `raise NotImplementedError("[要確認] ...")` で実装をブロックする。対象: `POST /ask` の認証方式（APIキー/Basic認証/両方）、PDFファイルの配置パス
+- LLMバックエンド（generator.py）とベクトルDB（retriever.py・ingest.py）は抽象インターフェース（Python Protocolまたは抽象基底クラス）を介して実装し、Anthropic ClaudeやChromaDBへの直接依存を `server.py` に書かない（NFR-4: 剥がせる設計）
+- ngrokはCLIツール呼び出しのため、Protocol等による抽象化は行わない（Simplicity First優先）。起動コマンド・パラメータは `config.py` の定数として外出しし、`server.py` に直書きしない程度の疎結合で足りる（NFR-4）
+- APIエンドポイントのエラーはFastAPIの `HTTPException` のみで表現し、使用するステータスコードは200/400/403/500に限定する（401は使用しない。認証失敗・未認証は常に403で統一する）
+- `POST /ask` は認証必須とする（APIキーまたはBasic認証、いずれの方式かはブロック値としてユーザーに確認する）。未認証・認証失敗時は403を返す。`GET /health`・`GET /stats` の認証要否は上記PENDINGの既定（認証不要）に従う
 - 以下のディレクトリ構成を厳守する:
 
 ```
@@ -72,6 +82,9 @@ FDE_ENTRY_HO/
 ├── CLAUDE.md
 ├── req.md
 ├── spec.md              (要件から生成)
+├── data/
+│   ├── chroma_db/       (ベクトルDB永続化先、5.4)
+│   └── (PDFファイル)     (配置パスは実装前に確認し config.py の PDF_PATH で管理)
 ├── src/
 │   ├── ingest.py        (PDF取り込み・チャンキング)
 │   ├── retriever.py     (ベクトル検索)
@@ -88,6 +101,8 @@ FDE_ENTRY_HO/
 │   └── run_eval.py      (eval実行スクリプト)
 ├── audit/
 │   └── conformance_report.md
+├── logs/
+│   └── requests.jsonl   (可観測性ログ、5.5)
 ├── templates/
 │   └── index.html       (簡易Web UI)
 ├── requirements.txt
@@ -97,7 +112,8 @@ FDE_ENTRY_HO/
 
 ### 5.3 検証ループ / フィードバック（柱3）
 - コード変更のたびにテストを実行し、失敗を自己修正する
-- eval は `evals/eval_set.json` の全10問で実行する
+- eval は `evals/eval_set.json` の全10問で実行する。合格基準はスコア80%以上（8問以上正解）とし、閾値未達の場合はngrok公開を行わない
+- `POST /ask` は外部API（Anthropic Claude）呼び出しに60秒のタイムアウトを設定する（NFR-1）。タイムアウト時は500エラーとして扱う
 - 失敗したテストのログをそのまま修正の入力に使う
 
 ### 5.4 メモリ設計（柱4）
@@ -115,7 +131,12 @@ FDE_ENTRY_HO/
 
 - API キー・トークンをソースコードにハードコードしない（環境変数 or .env）
 - PDFの絶対パスをAPIレスポンスに含めない
-- ngrok公開前に品質ゲート（req.md記載）を全て通過していること
+- ngrok公開前に以下の品質ゲート（req.md記載）を全て通過していること。1件でも未達なら公開しない:
+  1. 全ユニットテスト GREEN
+  2. eval スコア 80%以上（`evals/eval_set.json` 全10問で計測）
+  3. コンフォーマンス監査 差分ゼロ（spec.md vs 実装。`audit/conformance_report.md` にauditorエージェントが記録する）
+  4. 認証バイパスの脆弱性ゼロ
+  5. 目付け役（metsukeyaku）のレビューが PASS または CONDITIONAL
 - `rm -rf`、`git push --force`、`git reset --hard` は使用禁止
 
 ## 7. サブエージェント一覧
