@@ -1,4 +1,5 @@
 ---
+name: spec-writer
 model: claude-sonnet-4-6
 description: Section 2 対応。要件定義書（req.md）を入力に、機械可読な仕様書（spec.md）を生成する。受け入れ基準を検証可能な形に変換し、曖昧さを排除する。
 tools:

@@ -1,4 +1,5 @@
 ---
+name: constraint-designer
 model: claude-sonnet-4-6
 description: Section 3 対応。フィードフォワード設計の専門家。CLAUDE.md・ディレクトリ構成・命名規約などの制約ファイルを設計・検証し、エージェントの解空間を事前に狭める。
 tools:

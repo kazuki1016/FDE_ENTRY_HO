@@ -1,4 +1,5 @@
 ---
+name: stage-gate
 model: claude-sonnet-4-6
 description: Section 4 対応。計画→承認→小さな実装→検証のステージゲート方式でAI開発を進行管理する。ブラックボックスの一括生成を防ぎ、各ステップの承認を管理する。
 tools:

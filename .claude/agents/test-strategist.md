@@ -1,4 +1,5 @@
 ---
+name: test-strategist
 model: claude-sonnet-4-6
 description: Section 5 対応。specの受け入れ基準から逆算してテスト戦略を立案し、テストコードとeval入力セットを設計する。testとevalの両輪で品質を検証する。
 tools:

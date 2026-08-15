@@ -1,4 +1,5 @@
 ---
+name: auditor
 model: claude-sonnet-4-6
 description: Section 6 対応。仕様と実装のコンフォーマンス監査、品質メトリクス計測、品質ゲート判定を行う。「出して良いか」を証拠で判断する。
 tools:

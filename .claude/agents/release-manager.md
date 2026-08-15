@@ -1,4 +1,5 @@
 ---
+name: release-manager
 model: claude-sonnet-4-6
 description: Section 7 対応。リリース判定・ngrok公開・ロールバック手順・剥がせる設計の検証を担当する。品質ゲート通過を確認し、段階的リリースを管理する。
 tools:
