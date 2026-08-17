@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ハーネスエンジニアリング入門 RAG</title>
+<style>
+  body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  label { display: block; margin-top: 1rem; font-weight: bold; }
+  input, textarea { width: 100%; box-sizing: border-box; padding: 0.5rem; margin-top: 0.25rem; }
+  button { margin-top: 1rem; padding: 0.5rem 1rem; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #answer { white-space: pre-wrap; margin-top: 1.5rem; padding: 1rem; background: #f4f4f4; border-radius: 4px; }
+  #answer.loading { color: #666; }
+  #sources { white-space: pre-line; margin-top: 1rem; font-size: 0.9rem; color: #555; }
+</style>
+</head>
+<body>
+<h1>ハーネスエンジニアリング入門 質問応答</h1>
+
+<label for="question">質問</label>
+<textarea id="question" rows="3"></textarea>
+
+<button id="submit">送信</button>
+
+<div id="answer"></div>
+<div id="sources"></div>
+
+<script>
+const API_KEY = __API_KEY_JSON__;
+
+document.getElementById("submit").addEventListener("click", async () => {
+  const question = document.getElementById("question").value;
+  const answerEl = document.getElementById("answer");
+  const sourcesEl = document.getElementById("sources");
+  const submitEl = document.getElementById("submit");
+
+  submitEl.disabled = true;
+  answerEl.classList.add("loading");
+  sourcesEl.textContent = "";
+
+  const startedAt = Date.now();
+  const updateLoadingText = () => {
+    const elapsedSec = Math.floor((Date.now() - startedAt) / 1000);
+    answerEl.textContent = `検索・回答生成中...（${elapsedSec}秒経過。講座PDFを検索し、Bedrock経由でClaudeが回答を作成しています）`;
+  };
+  updateLoadingText();
+  const timerId = setInterval(updateLoadingText, 1000);
+
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": API_KEY,
+      },
+      body: JSON.stringify({ question }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      answerEl.textContent = `エラー: ${data.detail || res.status}`;
+      return;
+    }
+    answerEl.textContent = data.answer;
+    sourcesEl.textContent = data.sources
+      .map((s) => `${s.section}, p.${s.page}: ${s.title}`)
+      .join("\n");
+  } catch (err) {
+    answerEl.textContent = `エラー: ${err}`;
+  } finally {
+    clearInterval(timerId);
+    answerEl.classList.remove("loading");
+    submitEl.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
