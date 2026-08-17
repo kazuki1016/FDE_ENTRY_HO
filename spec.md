@@ -10,10 +10,10 @@
 
 「ハーネスエンジニアリング入門」講座PDF（harness_engineering_intro.pdf, 100ページ）を対象とした質問応答RAGシステムである。
 
-システムはPDFをセクション単位でチャンク化し、sentence-transformersでembeddingに変換してChromaDB（ローカル永続化）に格納する。ユーザーからの自然言語質問に対して、ベクトル類似度検索で関連チャンクを上位k件取得し、Anthropic Claude APIをLLMバックエンドとして回答を生成する。FastAPIサーバーとしてローカル起動し、ngrokトンネルでHTTPS公開する。
+システムはPDFをセクション単位でチャンク化し、sentence-transformersでembeddingに変換してChromaDB（ローカル永続化）に格納する。ユーザーからの自然言語質問に対して、ベクトル類似度検索で関連チャンクを上位k件取得し、Amazon Bedrock経由でClaudeをLLMバックエンドとして回答を生成する。FastAPIサーバーとしてローカル起動し、ngrokトンネルでHTTPS公開する。
 
 **設計上の重要変更（req.md 変更履歴より）:**
-当初はローカルLLM（bonsai-8b-mlx）を想定していたが、開発機がIntel Mac（x86_64）のためMLXフレームワークが動作しない。LLMバックエンドはAnthropic Claude APIに変更する。NFR-4の「差し替え可能な設計」に従い、LLMバックエンドはインターフェース分離で実装する。
+当初はローカルLLM（bonsai-8b-mlx）を想定していたが、開発機がIntel Mac（x86_64）のためMLXフレームワークが動作しない。LLMバックエンドはAnthropic Claude APIに変更した。さらにその後、Amazon BedrockのAPIキー（ベアラートークン方式）経由でClaudeを呼び出す構成に変更した（ユーザー確認済み。AWS IAMアクセスキー/シークレットは使用しない）。NFR-4の「差し替え可能な設計」に従い、LLMバックエンドはインターフェース分離で実装する。
 
 **基本特性:**
 - ステートレスAPI（会話履歴を保持しない）
@@ -198,9 +198,9 @@ PDFを分割した1チャンクが保持するフィールド定義を以下に�
    - コンテキスト: 取得したチャンク上位k件のcontent（全文を流し込まない設計）
    - ユーザーターン: 質問文
 
-2. Anthropic Claude API呼び出し
-   - anthropic SDKを使用する
-   - [要確認] 使用するモデル名（例: claude-3-5-sonnet-20241022等）はreq.mdに未記載
+2. Amazon Bedrock経由でClaude呼び出し
+   - anthropic SDKの `AnthropicBedrock` クライアントを使用する（ベアラートークン方式のBedrock APIキー認証。ユーザー確認済み。boto3への直接依存はしない）
+   - 使用するモデルはclaude-sonnet-4.6（ユーザー確認済み）。BedrockモデルID表記は `jp.anthropic.claude-sonnet-4-6`（東京リージョン）。[要確認] 実機での疎通検証が必要
    - LLMバックエンドはインターフェース分離で実装する（NFR-4）
 
 3. レスポンス整形
@@ -283,14 +283,14 @@ req.mdに記載されたAC-1〜AC-5の全項目を「入力 | 操作 | 期待出
 | PDF読み込み | PyMuPDF | — |
 | Embedding生成 | sentence-transformers | [要確認] モデル名未指定 |
 | ベクトルストア | ChromaDB | 永続化パス: data/chroma_db/ |
-| LLMバックエンド | Anthropic Claude API | anthropic SDK経由。[要確認] モデル名未指定 |
+| LLMバックエンド | Amazon Bedrock経由のClaude Sonnet 4.6 | anthropic SDKの `AnthropicBedrock`（ベアラートークン方式のBedrock APIキー認証）。モデルID: `jp.anthropic.claude-sonnet-4-6`（東京リージョン、確定値）。[要確認] 実機疎通は未検証 |
 | APIサーバー | FastAPI + Uvicorn | — |
 | トンネル公開 | ngrok | HTTPS URL |
 
 ### 6.2 環境前提
 
 - 開発機: Intel Mac（x86_64）。MLXフレームワーク（Apple Silicon専用）は使用不可
-- Anthropic Claude APIキーが環境変数または.envファイルで設定されていること
+- Amazon BedrockのAPIキー（ベアラートークン、`AWS_BEARER_TOKEN_BEDROCK`）とリージョン（`AWS_REGION`）が環境変数または.envファイルで設定されていること（確定値。AWS IAMアクセスキー/シークレットは使用しない）
 - APIキー・トークン類はソースコードにハードコードしない
 - PDFファイル `harness_engineering_intro.pdf` はプロジェクトルート直下に配置済みであること（確定値。`config.py` の `PDF_PATH` で管理する）
 
@@ -370,6 +370,9 @@ ngrok公開前に以下の全条件を満たすこと:
 |---|---|---|---|
 | 10 | 6.2 環境前提 | PDFファイルの配置パス | プロジェクトルート直下（`config.py` の `PDF_PATH` で管理） |
 | 11 | 6.4 セキュリティ / 2.1 POST /ask | 認証方式 | APIキー認証のみ（`X-API-Key` ヘッダー） |
+| 12 | 1 システム概要 / 6.1 技術スタック | LLMバックエンドの呼び出し経路 | Amazon Bedrock経由（`AnthropicBedrock`、ベアラートークン方式のBedrock APIキー認証。AWS IAMアクセスキー/シークレットは不使用） |
+| 13 | 6.1 技術スタック | AWSリージョン | 東京リージョン（`ap-northeast-1`） |
+| 14 | 4.3 生成フロー / 6.1 技術スタック | 使用モデル | claude-sonnet-4.6（Bedrock表記: `jp.anthropic.claude-sonnet-4-6`） |
 
 ### 未解決（CLAUDE.md 5.2 PENDING区分。config.py実装時に既定値をコメント付きで記録し、実装はブロックしない）
 
@@ -383,4 +386,4 @@ ngrok公開前に以下の全条件を満たすこと:
 | 6 | 4.1 取り込みフロー | チャンクサイズ（文字数）および重複（overlap）パラメータ |
 | 7 | 4.1 取り込みフロー | 使用するembeddingモデル名 |
 | 8 | 4.2 検索フロー | ChromaDBの距離関数の種類 |
-| 9 | 4.3 生成フロー | 使用するAnthropicモデル名（claude-3-5-sonnet等） |
+| 9 | 4.3 生成フロー | BedrockモデルID `jp.anthropic.claude-sonnet-4-6` の実機での疎通検証が未実施 |
