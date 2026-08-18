@@ -158,11 +158,57 @@ MATCH / (MATCH + PARTIAL + MISMATCH + 未実装) × 100 = 43 / 43 × 100 = **100
 | 2 | eval スコア 80%以上 | **PASS** | eval実行結果: 9/10 = 90%（合格基準: 80%） |
 | 3 | コンフォーマンス差分ゼロ | **PASS** | 監査後にRequestValidationErrorハンドラーを追加し400に変換する修正を実施。curlで malformed JSON / question型不正の両ケースが400（422ではない）を返すことを実機確認済み。pytest再実行（11/11 PASS）でも回帰なしを確認 |
 | 4 | 認証バイパス脆弱性ゼロ | **PASS** | セキュリティチェック完了。バイパス経路なし |
-| 5 | 目付け役（metsukeyaku）レビュー PASS または CONDITIONAL | **未実施** | Step11で実施予定。本ゲートは判定保留。総合判定に影響させない |
+| 5 | 目付け役（metsukeyaku）レビュー PASS または CONDITIONAL | **PASS**（CONDITIONAL条件はユーザーがリスク受容し解消） | Step11で実施。認証バイパス検査5パターン全て403（PASS）。CONDITIONAL条件（下記）はユーザー確認済み |
 
-### 総合判定: RELEASE_OK（ゲート5除く4条件）
+### 総合判定: RELEASE_OK（品質ゲート1〜5、全条件PASS）
 
-ゲート1〜4は全てPASS。ゲート5（目付け役レビュー）はStep11で実施予定のため保留。ゲート5のPASS/CONDITIONALを確認した上で最終リリース判定（Step12, release-manager）を行うこと。
+## Step 11: 目付け役（metsukeyaku）レビュー結果
+
+### 認証バイパス検査（5パターン + 参考1件）
+
+| # | パターン | 期待 | 結果 |
+|---|---|---|---|
+| 1 | `X-API-Key` ヘッダーなし | 403 | 403 PASS |
+| 2 | `X-API-Key` に空文字 | 403 | 403 PASS |
+| 3 | `X-API-Key` にランダム文字列 | 403 | 403 PASS |
+| 4 | 正しいキーの大文字小文字を変えた値 | 403 | 403 PASS |
+| 5 | `Authorization: Bearer <正しいキー>` で送信（X-API-Keyなし） | 403 | 403 PASS |
+| 参考 | 正規の `X-API-Key` で送信 | 200 | 200 PASS |
+
+`POST /ask` への直接的な認証バイパス経路は検出されなかった。
+
+### レビュー判定: CONDITIONAL → ユーザー確認によりPASSへ解消
+
+**CONDITIONAL条件（要検討事項）:** `GET /`（Web UI）が認証なしでHTMLを返し、そのHTML内のJavaScriptに `config.API_KEY` の実値が `json.dumps()` で埋め込まれている（src/server.py）。ngrok URLを知る第三者が `GET /` にアクセスするだけでPOST /ask用のAPIキーを取得できる。
+
+- 根拠: req.md NFR-2（APIキーでアクセス制限）の実効性低下
+- 背景: req.md AC-5-2（Web UIで質問→回答）を満たすにはブラウザ側にキーを渡す必要があり、req.md自体に内在する要件間のトレードオフ
+- 代替案（提示のみ）: サーバーサイド中継エンドポイント（`POST /web-ask` 等）を追加しAPIキーをブラウザに渡さない方式
+- **ユーザー判断: リスクを受容し現行実装のまま維持する（代替案は不採用）**
+
+### 軽微な指摘と対応状況
+
+| # | 指摘 | 対応 |
+|---|---|---|
+| 1 | req.md FR-2本文が「デフォルト3件」のまま未更新 | 対応済み。「デフォルト5件」に修正、変更履歴参照を追記 |
+| 2 | 監査レポートのファイル名について、CLAUDE.md（静的名）と `.claude/agents/auditor.md`（`conformance_report_YYMMDDHH_XXXX.md` 命名規則）が不一致 | 対応済み。auditor.mdの命名規則を正としてCLAUDE.md・spec.md・release-manager.md・手順書.mdを統一。本ファイルも `conformance_report_26081817_0001.md` にリネーム |
+| 3 | `tests/test_retriever.py` のテスト関数名が「上位3件」のまま（実際はTOP_K=5で上位5件） | 対応済み。「上位5件」に一括置換 |
+| 4 | APIキー比較が定数時間比較でない（タイミング攻撃への理論上の弱さ） | 対応済み。`hmac.compare_digest()` に変更 |
+
+### 見落とし候補（対応せず、既知の制約として記録）
+
+- `question` フィールドに最大長制限がない（spec.md未規定のため対応せず。将来の本番運用時に検討）
+- `GET /stats` の `last_updated` はChromaDB内部ファイルのmtimeに依存（ChromaDBのバージョンアップで変わる可能性。spec.mdはフォーマットのみ規定でこの点は未規定）
+- ログファイル追記は単一プロセス前提（マルチワーカー構成にする場合は書き込み競合対策が必要）
+- `BedrockLLMBackend` はリクエストごとに再生成（NFR-4の抽象化設計とのトレードオフ。性能上の非効率だが機能上の問題はない）
+
+### 良い判断の認知（目付け役コメントより）
+
+- NFR-4のProtocol抽象化設計は適切でSimplicity Firstに反しない
+- RequestValidationErrorハンドラーの追加は正しい対処
+- eval Q5の差し替え（PDFに存在しない用語→実在する用語）は正当な判断
+- TOP_K 3→5の変更はデータドリブンでCLAUDE.md/req.md/spec.mdを整合的に更新できている
+- Bedrock経由への変更はNFR-4に従いProtocolベースで実装されている
 
 ### 追補対応の記録:
 - 指摘: spec.mdでは `POST /ask` のエラーレスポンスとして400/403/500のみを規定しているが、FastAPIのデフォルト動作としてPydantic ValidationError（422）が返る経路が残存していた（malformed JSONボディ、question型不正など）。

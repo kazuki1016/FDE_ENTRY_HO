@@ -29,7 +29,7 @@ ngrok公開前に以下をすべて確認する:
 
 ### 1. 品質ゲート確認
 - [ ] auditor の品質ゲート判定が RELEASE_OK である
-- [ ] 判定レポートが `audit/conformance_report.md` に記録されている
+- [ ] 判定レポートが `audit/conformance_report_YYMMDDHH_XXXX.md` に記録されている
 
 ### 2. ロールバック手段の確認
 - [ ] ngrok プロセスを停止すれば即座にアクセス不可になることを確認

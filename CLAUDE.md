@@ -100,7 +100,7 @@ FDE_ENTRY_HO/
 │   ├── eval_set.json    (eval入力セット)
 │   └── run_eval.py      (eval実行スクリプト)
 ├── audit/
-│   └── conformance_report.md
+│   └── conformance_report_YYMMDDHH_XXXX.md  (命名規則は .claude/agents/auditor.md に従う)
 ├── logs/
 │   └── requests.jsonl   (可観測性ログ、5.5)
 ├── templates/
@@ -135,7 +135,7 @@ FDE_ENTRY_HO/
 - ngrok公開前に以下の品質ゲート（req.md記載）を全て通過していること。1件でも未達なら公開しない:
   1. 全ユニットテスト GREEN
   2. eval スコア 80%以上（`evals/eval_set.json` 全10問で計測）
-  3. コンフォーマンス監査 差分ゼロ（spec.md vs 実装。`audit/conformance_report.md` にauditorエージェントが記録する）
+  3. コンフォーマンス監査 差分ゼロ（spec.md vs 実装。`audit/conformance_report_YYMMDDHH_XXXX.md` にauditorエージェントが記録する）
   4. 認証バイパスの脆弱性ゼロ
   5. 目付け役（metsukeyaku）のレビューが PASS または CONDITIONAL
 - `rm -rf`、`git push --force`、`git reset --hard` は使用禁止
