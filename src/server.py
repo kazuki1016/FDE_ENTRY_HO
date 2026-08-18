@@ -3,6 +3,7 @@
 LLMバックエンド（generator.py）とベクトルDB（ingest.py・retriever.py）への直接依存は
 持たず、それぞれの公開関数（generate_answer, search）を介して利用する（NFR-4）。
 """
+import hmac
 import json
 import os
 import time
@@ -25,7 +26,7 @@ _store = ChromaVectorStore(config.CHROMA_DB_PATH)
 
 
 @app.exception_handler(RequestValidationError)
-async def _validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def _validation_error_handler(_request: Request, _exc: RequestValidationError) -> JSONResponse:
     # CLAUDE.md: 使用するステータスコードは200/400/403/500に限定する（422は使用しない）
     return JSONResponse(status_code=400, content={"detail": "リクエスト形式が不正です"})
 
@@ -45,13 +46,19 @@ class AskResponse(BaseModel):
     sources: list[Source]
 
 
+def _api_key_matches(x_api_key: Optional[str]) -> bool:
+    if x_api_key is None:
+        return False
+    return hmac.compare_digest(x_api_key, config.API_KEY)
+
+
 def _require_api_key(x_api_key: Optional[str] = Header(default=None, alias=config.API_KEY_HEADER)) -> None:
-    if x_api_key != config.API_KEY:
+    if not _api_key_matches(x_api_key):
         raise HTTPException(status_code=403, detail="認証に失敗しました")
 
 
 def _require_api_key_if_enabled(x_api_key: Optional[str] = Header(default=None, alias=config.API_KEY_HEADER)) -> None:
-    if config.HEALTH_STATS_AUTH_REQUIRED and x_api_key != config.API_KEY:
+    if config.HEALTH_STATS_AUTH_REQUIRED and not _api_key_matches(x_api_key):
         raise HTTPException(status_code=403, detail="認証に失敗しました")
 
 
