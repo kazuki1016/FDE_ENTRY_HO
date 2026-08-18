@@ -181,7 +181,7 @@ PDFを分割した1チャンクが保持するフィールド定義を以下に�
 2. 類似度検索
    - ChromaDBでコサイン類似度（または同等の距離関数）により検索する
    - [要確認] 距離関数の種類はreq.mdに未記載
-   - 上位k件を返す（デフォルト k=3）
+   - 上位k件を返す（デフォルト k=5。当初k=3だったが、evalスコア70%止まりだったためk=5に変更。CLAUDE.md 5.1参照）
 
 3. 結果返却
    - 各チャンクのcontent, section_number, page_number, titleを含めて返す
@@ -238,9 +238,9 @@ req.mdに記載されたAC-1〜AC-5の全項目を「入力 | 操作 | 期待出
 
 | # | 入力 | 操作 | 期待出力 |
 |---|---|---|---|
-| AC-2-1 | question: "ハーネス設計の5本柱とは？" | retriever.pyで上位3件を検索する | 返された3件のうち少なくとも1件のsection_numberが "Section 1" であること |
-| AC-2-2 | question: "コンフォーマンス監査とは？" | retriever.pyで上位3件を検索する | 返された3件のうち少なくとも1件のsection_numberが "Section 6" であること |
-| AC-2-3 | question: "rippable harnessとは？" | retriever.pyで上位3件を検索する | 返された3件のうち少なくとも1件のsection_numberが "Section 7" であること |
+| AC-2-1 | question: "ハーネス設計の5本柱とは？" | retriever.pyで上位5件を検索する | 返された5件のうち少なくとも1件のsection_numberが "Section 1" であること |
+| AC-2-2 | question: "コンフォーマンス監査とは？" | retriever.pyで上位5件を検索する | 返された5件のうち少なくとも1件のsection_numberが "Section 6" であること |
+| AC-2-3 | question: "rippable harnessとは？" | retriever.pyで上位5件を検索する | 返された5件のうち少なくとも1件のsection_numberが "Section 7" であること |
 
 ---
 
@@ -373,6 +373,7 @@ ngrok公開前に以下の全条件を満たすこと:
 | 12 | 1 システム概要 / 6.1 技術スタック | LLMバックエンドの呼び出し経路 | Amazon Bedrock経由（`AnthropicBedrock`、ベアラートークン方式のBedrock APIキー認証。AWS IAMアクセスキー/シークレットは不使用） |
 | 13 | 6.1 技術スタック | AWSリージョン | 東京リージョン（`ap-northeast-1`） |
 | 14 | 4.3 生成フロー / 6.1 技術スタック | 使用モデル | claude-sonnet-4.6（Bedrock表記: `jp.anthropic.claude-sonnet-4-6`） |
+| 15 | 4.2 検索フロー / AC-2 | 検索上位k件（TOP_K） | 5件（当初3件だったが、eval実行でSection 5・Capstoneの正解チャンクが上位3件に入らずスコア70%だったため5に変更） |
 
 ### 未解決（CLAUDE.md 5.2 PENDING区分。config.py実装時に既定値をコメント付きで記録し、実装はブロックしない）
 

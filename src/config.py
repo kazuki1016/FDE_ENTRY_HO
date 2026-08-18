@@ -14,7 +14,7 @@ load_dotenv()
 PDF_PATH = os.getenv("PDF_PATH", "harness_engineering_intro.pdf")
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "data/chroma_db")
 LOG_PATH = os.getenv("LOG_PATH", "logs/requests.jsonl")
-TOP_K = 3
+TOP_K = 5  # eval実行時、k=3ではSection5/Capstoneの正解ページが上位に入らずスコア70%だったため5に変更（ユーザー確認済み）
 TIMEOUT_SEC = 60
 
 API_KEY_HEADER = "X-API-Key"

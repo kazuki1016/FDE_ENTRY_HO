@@ -1,0 +1,52 @@
+[
+  {
+    "question": "FDEとは何ですか？",
+    "expected_section": "Section 0",
+    "expected_keywords": ["Forward Deployed Engineer", "Business", "Technology"]
+  },
+  {
+    "question": "ハーネス設計の5本柱を教えてください",
+    "expected_section": "Section 1",
+    "expected_keywords": ["コンテキスト", "制約", "検証", "メモリ", "可観測性"]
+  },
+  {
+    "question": "Spec-Driven Developmentとは？",
+    "expected_section": "Section 2",
+    "expected_keywords": ["仕様駆動", "受け入れ基準"]
+  },
+  {
+    "question": "フィードフォワード設計の目的は？",
+    "expected_section": "Section 3",
+    "expected_keywords": ["解空間", "制約"]
+  },
+  {
+    "question": "品質ゲートとは？",
+    "expected_section": "Section 6",
+    "expected_keywords": ["リリース", "条件", "テスト"]
+  },
+  {
+    "question": "testとevalの違いは？",
+    "expected_section": "Section 5",
+    "expected_keywords": ["壊れていない", "賢く振る舞"]
+  },
+  {
+    "question": "コンフォーマンス監査とは？",
+    "expected_section": "Section 6",
+    "expected_keywords": ["仕様", "実装", "差分"]
+  },
+  {
+    "question": "rippable harnessとは？",
+    "expected_section": "Section 7",
+    "expected_keywords": ["剥がせる", "モデル"]
+  },
+  {
+    "question": "Capstoneの評価観点は？",
+    "expected_section": "Capstone",
+    "expected_keywords": ["仕様の質", "制御の質", "検証の質", "監査と判断"]
+  },
+  {
+    "question": "この講座に関係ない質問です",
+    "expected_section": null,
+    "expected_keywords": ["該当する情報がありません"]
+  }
+]
