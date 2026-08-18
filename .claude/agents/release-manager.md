@@ -74,24 +74,25 @@ ngrok公開前に以下をすべて確認する:
 ## 公開手順
 
 ```bash
-# 1. 品質ゲート最終確認
-python -m pytest tests/ -v
-python evals/run_eval.py
+# 1. 品質ゲート最終確認（venv明示。src/に__init__.pyがなくpython/pytestがPATHにないため）
+.venv/bin/python -m pytest tests/ -v
+.venv/bin/python evals/run_eval.py
 
-# 2. サーバー起動
-uvicorn src.server:app --host 0.0.0.0 --port 8000
+# 2. サーバー起動（src/がフラットimportのため、src.server:appではなくPYTHONPATH=srcで起動する）
+PYTHONPATH=src .venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
 
 # 3. ngrok 起動（別ターミナル）
 ngrok http 8000
 
-# 4. 動作確認
+# 4. 動作確認（認証はX-API-Keyヘッダー。config.API_KEY_HEADERを参照）
 curl -X POST https://<ngrok-url>/ask \
-  -H "Authorization: Bearer <token>" \
+  -H "X-API-Key: <APP_API_KEYの値>" \
   -H "Content-Type: application/json" \
   -d '{"question": "FDEとは何ですか？"}'
 
 # 5. ロールバック（問題発生時）
 # Ctrl+C で ngrok を停止 → 即座にアクセス不可
+# Ctrl+C でサーバーを停止
 ```
 
 ## 行動規範
