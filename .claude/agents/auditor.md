@@ -89,7 +89,7 @@ req.md に定義された5つのゲート条件を判定する:
 
 ## 監査証跡の記録
 
-監査結果は `audit/conformance_report.md` に追記し、以下を含める:
+監査結果は `audit/conformance_report_YYMMDDHH_XXXX.md` に追記し、以下を含める:
 - 監査実施日時
 - 監査者（auditor エージェント）
 - 対象コミットハッシュ（利用可能な場合）

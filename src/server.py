@@ -10,8 +10,9 @@ import traceback
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 import config
@@ -21,6 +22,12 @@ from retriever import search
 
 app = FastAPI()
 _store = ChromaVectorStore(config.CHROMA_DB_PATH)
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    # CLAUDE.md: 使用するステータスコードは200/400/403/500に限定する（422は使用しない）
+    return JSONResponse(status_code=400, content={"detail": "リクエスト形式が不正です"})
 
 
 class AskRequest(BaseModel):
