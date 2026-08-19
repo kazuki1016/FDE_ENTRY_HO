@@ -9,7 +9,6 @@ import re
 from typing import Protocol, TypedDict
 
 import chromadb
-import fitz
 from sentence_transformers import SentenceTransformer
 
 import config
@@ -112,6 +111,11 @@ def _split_text(text: str, chunk_size: int, overlap: int) -> list[str]:
 
 
 def extract_chunks(pdf_path: str) -> list[Chunk]:
+    # fitz(PyMuPDF)はPDF取り込み（オフライン・reingest時のみ）でしか使わないため遅延importにする。
+    # Lambda Container Image（spec_infra.md 2.6章）ではPDF解析を行わないため同梱しない
+    # （C拡張のビルドにコンパイラが必要でイメージサイズも大きいため除外している）。
+    import fitz
+
     doc = fitz.open(pdf_path)
     chunks: list[Chunk] = []
     current_section = "Section 0"

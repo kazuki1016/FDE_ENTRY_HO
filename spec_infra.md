@@ -124,7 +124,7 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 
 | 項目 | 値 |
 |---|---|
-| ランタイム | Python 3.11（コンテナイメージ内） |
+| ランタイム | **Python 3.12**（コンテナイメージ内。実装時の発見により訂正: `public.ecr.aws/lambda/python:3.11`はAmazon Linux 2ベースでEOL済み（サポート終了2026-06-30）、glibcが古くonnxruntime・pymupdf・numpy等のプリビルドwheelと非互換で、Dockerビルドが失敗した。`3.12`はAmazon Linux 2023ベース（サポート終了2029-06-30）でこの問題が解消する。ユーザー確認済み） |
 | エントリーポイント | Mangumアダプタでラップした FastAPI アプリ（Lambda Function URLのイベント形式に対応） |
 | 依存ライブラリのパッケージング（**`@metsukeyaku`指摘 R-1 により訂正**） | **確定**: Lambda Container Image（Amazon ECR）を使用する。`requirements.txt` には `torch==2.2.2`（700MB超）・`sentence-transformers`・`transformers` が含まれ、合計サイズがLambda ZIP/レイヤーの上限（250MB非圧縮）を大幅に超過し物理的にデプロイ不可能なため。Container Imageは最大10GBまで許容され、既存の依存関係・embedding実装（`retriever.py`・`ingest.py`）を変更せずに済む（1章の却下案参照） |
 | `/tmp` の用途 | ChromaDBのローカルキャッシュ（`/tmp/chroma_db`）を展開する。容量上限はLambda仕様による（通常512MB〜10GB） |
@@ -154,8 +154,10 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 |---|---|
 | リポジトリ | プロジェクト用ECRリポジトリを1つ新規作成（CDKの `DockerImageFunction` / `DockerImageAsset` 経由で自動作成・push可能） |
 | イメージのビルド | `cdk deploy` 実行時にDockerビルドが自動実行される（CDK標準機能）。CI環境（GitHub Actions）にもDockerビルド環境が必要（9.2章参照） |
-| [要確認] ベースイメージ | AWS公式のLambda Python 3.11ベースイメージ（`public.ecr.aws/lambda/python:3.11`）を想定。マルチステージビルドの要否は実装時に判断 |
+| ベースイメージ | **確定**: `public.ecr.aws/lambda/python:3.12`（Amazon Linux 2023ベース）。Python 3.11イメージ（Amazon Linux 2ベース、EOL済み）はglibcの古さが原因で複数パッケージのビルドに失敗したため実装時に変更した（127行目参照）。マルチステージビルドは不要と判明（pymupdf/pyngrokをイメージから除外することで単純な`pip install`で完結する。requirements.txt除外の詳細は`Dockerfile`参照） |
 | 依存関係（`@metsukeyaku`再レビュー指摘L-1により追記） | **確定**: `requirements.txt`に`mangum`パッケージを追加する（現状未記載）。Dockerfileでは`requirements.txt`をそのままインストールする |
+| torchのビルド（実装時の発見により追記） | **確定**: `torch`はデフォルトでCUDA同梱版がインストールされ`nvidia-*`パッケージ込みで4GB超になり、Lambdaの10GB上限を圧迫する（実装時に10.1GBで超過を確認）。`--index-url https://download.pytorch.org/whl/cpu`でCPU専用ビルドを明示的にインストールする（LambdaはCPUのみでnvidiaパッケージは不要）。この対応でイメージサイズは3.82GBまで縮小した |
+| requirements.txtからの除外（実装時の発見により追記） | **確定**: `pymupdf`（PDF取り込み専用。Cコンパイラなしではソースビルド不可）・`pyngrok`（ngrok構成専用）はLambda実行時に不要なため、Dockerfile内で`grep -v`により除外してインストールする。`ingest.py`の`import fitz`は`extract_chunks`関数内への遅延importに変更済み（Lambda実行パスでは呼ばれないため） |
 | embeddingモデルの重み（`@metsukeyaku`再レビュー指摘L-2・E-NEW-1により追記） | **確定**: `SentenceTransformer`のモデル重みはビルド時にContainer Imageへ事前同梱する（実行時のHugging Faceからのダウンロードはコールドスタートを不安定・長時間化させるため行わない）。DockerfileのビルドステップでHugging Faceからモデルをダウンロードしイメージ内にキャッシュする |
 | ライフサイクルポリシー | [推奨デフォルト値（PENDING）] 古いイメージの自動削除（例: 直近5世代のみ保持）を設定し、ECRのストレージ費用を抑える |
 
