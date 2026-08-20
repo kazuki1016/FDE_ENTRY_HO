@@ -7,3 +7,4 @@ __pycache__/
 infra/cdk.out/
 infra/.venv/
 .DS_Store
+ignore_docs/
