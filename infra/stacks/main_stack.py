@@ -11,6 +11,7 @@ AWS_BEARER_TOKEN_BEDROCKをキーに持つ1つのシークレット）は、人�
 import pathlib
 
 from aws_cdk import (
+    BundlingOptions,
     CfnOutput,
     CustomResource,
     Duration,
@@ -110,8 +111,15 @@ class MainStack(Stack):
         api_behavior = cloudfront.BehaviorOptions(
             origin=lambda_origin,
             cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
-            # Authorizationヘッダーをオリジンへ転送する（FastAPI層のBasic認証にも使うため。4.3章）
-            origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER,
+            # Authorizationヘッダーをオリジンへ転送する（FastAPI層のBasic認証にも使うため。4.3章）。
+            # ALL_VIEWERだとHostヘッダーもそのまま転送され、Lambda Function URL側の
+            # ドメイン検証と不一致になりAccessDeniedException(403)を返す
+            # （実装時にAC-INFRA-4の検証で発覚）。Lambda Function URLをオリジンにする場合は
+            # AWS公式にHostヘッダーを除外したポリシーの使用が推奨されている。
+            origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+            # allowed_methods未設定だとデフォルトでGET/HEADのみ許可となり、/askへの
+            # POSTがCloudFrontに403拒否される（実装時にAC-INFRA-4の検証で発覚）。
+            allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
             viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             function_associations=[auth_function_association],
         )
@@ -119,6 +127,9 @@ class MainStack(Stack):
         distribution = cloudfront.Distribution(
             self,
             "Distribution",
+            # default_root_object未設定だと "/" が空キーのオブジェクトを探しに行きS3が
+            # AccessDeniedを返す（実装時にAC-INFRA-1-3の検証で発覚）。
+            default_root_object="index.html",
             default_behavior=cloudfront.BehaviorOptions(
                 origin=s3_origin,
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -152,7 +163,20 @@ class MainStack(Stack):
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="index.handler",
             timeout=Duration.seconds(30),
-            code=lambda_.Code.from_asset(_KVS_SYNC_LAMBDA_DIR),
+            # CloudFront KeyValueStoreのデータプレーンAPI（cloudfront-keyvaluestore）は
+            # awscrt(botocore[crt])を要求するが、Lambda組み込みのboto3/botocoreには
+            # 含まれない（実装時に "Missing Dependency" エラーで発覚）。
+            # requirements.txt（infra/lambda/kvs_sync/）をDockerでバンドルして同梱する。
+            code=lambda_.Code.from_asset(
+                _KVS_SYNC_LAMBDA_DIR,
+                bundling=BundlingOptions(
+                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,
+                    command=[
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output",
+                    ],
+                ),
+            ),
         )
         secret.grant_read(sync_function)
         sync_function.add_to_role_policy(

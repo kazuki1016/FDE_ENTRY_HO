@@ -38,9 +38,9 @@
 | 4 | 10 | CloudFront Functions + KVS + SM同期定義 | infra/stacks/main_stack.py, infra/cf_auth.js | DONE | cdk synth が成功すること — 確認済み。当初想定のAwsCustomResourceでは表現できずカスタムLambda+Providerに変更（詳細はspec_infra.md） |
 | 5 | 11 | deploy.yml 作成 | .github/workflows/deploy.yml | DONE | YAML構文チェック通過 — 確認済み。人間承認A(GitHubリポジトリ)完了済み |
 | 5 | 12 | reingest.yml 作成 | .github/workflows/reingest.yml | DONE | YAML構文チェック通過 — 確認済み |
-| 6 | 13 | 初回 cdk deploy 実行 | （インフラ作成） | BLOCKED（要人間承認D） | AWSリソース作成完了 |
-| 6 | 14 | 初回 ChromaDB S3 アップロード | （データ配置） | BLOCKED | S3にアーカイブが配置されること |
-| 6 | 15 | E2Eおよびインフラ受け入れ基準検証 | （テスト実行） | BLOCKED | AC-INFRA-1〜5 全件PASS |
+| 6 | 13 | 初回 cdk deploy 実行 | （インフラ作成） | DONE | AWSリソース作成完了 — 確認済み（27/27 CREATE_COMPLETE）。CloudFront: dgjeh1trfl9lf.cloudfront.net |
+| 6 | 14 | 初回 ChromaDB S3 アップロード | （データ配置） | DONE | S3にアーカイブが配置されること — 確認済み。GET /statsでchunk_count=109を確認 |
+| 6 | 15 | E2Eおよびインフラ受け入れ基準検証 | （テスト実行） | PENDING | AC-INFRA-1〜5 全件PASS |
 | 6 | 16 | コンフォーマンス監査 + 品質ゲート確認 | （監査実行） | BLOCKED | 8.6章 品質ゲート5条件すべて充足 |
 
 ---
@@ -167,6 +167,16 @@ spec_infra.md 4.3章に記述されている変更をステップ分割して実
 - **内容**: spec_infra.md 7章のAC-INFRA-1〜5をCloudFront URL経由で検証
 - **ゲート条件**: 全件PASS、CloudWatch Logsにリクエストログ出力確認
 - **依存関係**: Step 14 の完了後
+- **進捗**:
+  - AC-INFRA-1-1/1-2/1-3（CloudFront Basic認証）: PASS
+  - AC-INFRA-2-1/2-2/2-3/2-4（FastAPI層Basic認証・Function URL直接）: PASS
+  - AC-INFRA-3-1/3-2（コールド/ウォームスタート）: PASS（CloudWatch Logsで確認。コールド18.4秒、ウォーム5.8〜6.8秒）
+  - AC-INFRA-3-3（S3アーカイブ不在時500）: 未実施（本番S3オブジェクトの一時退避が必要なため、実施方法を要確認）
+  - AC-INFRA-4-1/4-3（CloudFront経由 /ask・/health）: PASS
+  - AC-INFRA-4-2（ブラウザでのUI動作）: 未実施（ブラウザでの手動確認が必要）
+  - AC-INFRA-5-1（60秒以内のレイテンシ）: PASS（ウォームスタート5.8〜7.0秒）
+  - AC-INFRA-5-2（無料枠内のコスト）: 未実施（利用実績が蓄積してからAWS Billingで確認）
+  - 実装時に3件の不具合発覚・修正済み（spec_infra.md 2.1章・2.6章に記録）: ①`default_root_object`未設定によるルートパスAccessDenied、②`HF_HOME`未固定によるembeddingモデル再ダウンロード失敗、③オリジンリクエストポリシー`AllViewer`のHostヘッダー転送によるLambda Function URLのAccessDeniedException
 
 #### Step 16: コンフォーマンス監査 + 品質ゲート最終確認
 - **内容**: spec_infra.md 8.6章の品質ゲート5条件（テストGREEN、eval80%以上、監査差分ゼロ、認証バイパスゼロ、metsukeyakuレビューPASS/CONDITIONAL）を確認

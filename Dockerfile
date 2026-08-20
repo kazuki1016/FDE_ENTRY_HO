@@ -22,6 +22,11 @@ RUN grep -v -E "^(pymupdf|pyngrok|torch)==" ${LAMBDA_TASK_ROOT}/requirements.txt
 
 # embeddingモデルの重みをビルド時に事前ダウンロードしてイメージに同梱する
 # （config.EMBEDDING_MODEL の既定値。PENDING、config.py参照）
+# HF_HOMEを固定パスにする: 未設定だとビルド時(rootユーザー、HOME=/root)のキャッシュ先と
+# 実行時(Lambdaの非rootユーザー、HOME=/home/sbx_user1051、読み取り専用)のキャッシュ探索先が
+# 一致せず、実行時にHugging Faceへの再ダウンロードを試みて失敗する
+# （実装時にAC-INFRA-2-3の検証で発覚。500エラー、Errno 30 Read-only file system）。
+ENV HF_HOME=/opt/hf_cache
 ARG EMBEDDING_MODEL=paraphrase-multilingual-MiniLM-L12-v2
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('${EMBEDDING_MODEL}')"
 

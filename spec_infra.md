@@ -81,7 +81,9 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 | TLS終端 | CloudFrontにて処理（デフォルトドメイン使用のためCloudFront提供のデフォルト証明書を使用。8章参照） |
 | Basic認証実装 | CloudFront Functions（Viewer Request イベントで Authorization ヘッダーを検証） |
 | ルーティング（`@metsukeyaku`指摘 C-2 により訂正） | 既存FastAPIのルートは `/ask`・`/health`・`/stats`（`/api/`プレフィックスなし。`server.py`の実装に合わせる）。CloudFrontのビヘイビアで `/ask`・`/health`・`/stats` の各パスパターンを明示的にLambda Function URLへ、それ以外（デフォルトビヘイビア `*`）をS3オリジンへ振り分ける。FastAPI側にルートプレフィックスを追加する変更は行わない（Surgical Changes） |
-| オリジンリクエストポリシー | Lambda Function URL向けビヘイビアは `Authorization` ヘッダーをオリジンに転送するオリジンリクエストポリシーを使用する（理由: 4.3章参照。ブラウザが自動付与するBasic認証ヘッダーをFastAPI層の検証にも使う）。当該ビヘイビアは`CachingDisabled`（P1参照）のため、認証ヘッダー付きレスポンスが他ユーザーに誤配信されるリスクはない（`@metsukeyaku`再レビュー指摘E-NEW-2）。将来的にキャッシュを有効化する変更を行う場合は、この相互作用に注意すること |
+| オリジンリクエストポリシー（実装時にAC-INFRA-4の検証で訂正） | Lambda Function URL向けビヘイビアは `Authorization` ヘッダーをオリジンに転送するオリジンリクエストポリシーを使用する（理由: 4.3章参照。ブラウザが自動付与するBasic認証ヘッダーをFastAPI層の検証にも使う）。当初 `AllViewer` マネージドポリシーを採用したが、これは`Host`ヘッダーも転送してしまい、Lambda Function URL側のドメイン検証と不一致になって`AccessDeniedException`（403）が返る不具合が実装時に発覚した。**確定**: `AllViewerExceptHostHeader`マネージドポリシー（`Host`ヘッダーのみ除外）に変更する。当該ビヘイビアは`CachingDisabled`（P1参照）のため、認証ヘッダー付きレスポンスが他ユーザーに誤配信されるリスクはない（`@metsukeyaku`再レビュー指摘E-NEW-2）。将来的にキャッシュを有効化する変更を行う場合は、この相互作用に注意すること |
+| 許可HTTPメソッド（実装時にAC-INFRA-4の検証で発覚） | `/ask`・`/health`・`/stats`ビヘイビアは`allowed_methods`を明示的に`ALLOW_ALL`（GET/HEAD/OPTIONS/PUT/POST/PATCH/DELETE）に設定する。未設定時のCloudFrontデフォルトはGET/HEADのみで、`POST /ask`がCloudFrontに403拒否される |
+| ルートオブジェクト（実装時にAC-INFRA-1-3の検証で発覚） | Distributionに`default_root_object="index.html"`を設定する。未設定だとルートパス`/`へのリクエストが空キーのオブジェクトを探しに行き、S3（OAC経由）が`AccessDenied`を返す |
 | カスタムドメイン | **確定**: 使用しない。CloudFrontのデフォルトドメイン（`*.cloudfront.net`）を使用する（ユーザー確認済み） |
 | [推奨デフォルト値（PENDING）] キャッシュ設定 | `/ask`・`/health`・`/stats` ルートはキャッシュ無効化（`CachingDisabled` マネージドポリシー）を推奨。回答は質問ごとに動的なためキャッシュ対象外。S3側の静的ファイルはCloudFrontのデフォルトキャッシュ動作でよい |
 | [推奨デフォルト値（PENDING）] スロットリング設定 | 明示的なレート制限は設定しない（AWS標準のDDoS保護のみ）。低頻度アクセスのハンズオン用途のため追加設定は不要と判断 |
@@ -161,6 +163,7 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 | requirements.txtからの除外（実装時の発見により追記） | **確定**: `pymupdf`（PDF取り込み専用。Cコンパイラなしではソースビルド不可）・`pyngrok`（ngrok構成専用）はLambda実行時に不要なため、Dockerfile内で`grep -v`により除外してインストールする。`ingest.py`の`import fitz`は`extract_chunks`関数内への遅延importに変更済み（Lambda実行パスでは呼ばれないため） |
 | `.dockerignore`（実装時の発見により追記） | **確定**: プロジェクトルートに`.dockerignore`が必要。CDKの`DockerImageCode.from_image_asset()`はビルドコンテキストとしてプロジェクトルート全体をコピーするため、これがないと`.venv/`（数GB）や`infra/cdk.out/`自身（再帰的に自己参照し無限増殖する）まで含めてコピーしようとし、ディスクを圧迫して`ENOSPC`でビルドが失敗する（実装時に実際に発生し、ホストディスクの空き容量が557MBまで逼迫した）。`.venv/`・`.git/`・`data/`・`logs/`・`tests/`・`infra/cdk.out/`・`*.pdf`等を除外する |
 | embeddingモデルの重み（`@metsukeyaku`再レビュー指摘L-2・E-NEW-1により追記） | **確定**: `SentenceTransformer`のモデル重みはビルド時にContainer Imageへ事前同梱する（実行時のHugging Faceからのダウンロードはコールドスタートを不安定・長時間化させるため行わない）。DockerfileのビルドステップでHugging Faceからモデルをダウンロードしイメージ内にキャッシュする |
+| `HF_HOME`の固定（実装時にAC-INFRA-2-3の検証で発覚） | **確定**: Dockerfileで`ENV HF_HOME=/opt/hf_cache`をモデルダウンロード前に設定する。未設定だとビルド時（rootユーザー、`HOME=/root`）のキャッシュ先と実行時（Lambdaの非rootユーザー、`HOME=/home/sbx_user1051`、読み取り専用）のキャッシュ探索先が一致せず、実行時にモデルキャッシュが見つからずHugging Faceへの再ダウンロードを試みて`/ask`が500エラーになる（`Errno 30 Read-only file system`） |
 | ライフサイクルポリシー | [推奨デフォルト値（PENDING）] 古いイメージの自動削除（例: 直近5世代のみ保持）を設定し、ECRのストレージ費用を抑える |
 
 ---
