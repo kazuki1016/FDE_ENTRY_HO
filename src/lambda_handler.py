@@ -26,14 +26,18 @@ def _ensure_chroma_db() -> None:
     try:
         s3.download_file(bucket, key, _CHROMA_ARCHIVE_PATH)
     except Exception as exc:
-        # S3にアーカイブが存在しない場合もここに到達する（spec_infra.md AC-INFRA-3-3: 500を期待）
-        raise RuntimeError(f"ChromaDBアーカイブの取得に失敗しました: s3://{bucket}/{key}") from exc
+        # S3にアーカイブが存在しない場合もここに到達する（spec_infra.md AC-INFRA-3-3）。
+        # ここはLambdaのコールドスタート初期化中（Mangum/FastAPI起動前）に発生するため、
+        # 例外メッセージはFastAPI経由の日本語レスポンスにはならない。ASCII以外の文字を含めると
+        # awslambdaricのpost_init_errorがLatin-1エンコードに失敗しUnicodeEncodeErrorで
+        # 二次クラッシュする（実装時にAC-INFRA-3-3の検証で発覚）ため、英語で記述する。
+        raise RuntimeError(f"Failed to fetch ChromaDB archive: s3://{bucket}/{key}") from exc
 
     with tarfile.open(_CHROMA_ARCHIVE_PATH) as tar:
         tar.extractall("/tmp")
 
     if not os.path.isdir(_CHROMA_TMP_DIR):
-        raise RuntimeError(f"ChromaDBアーカイブの展開後に {_CHROMA_TMP_DIR} が見つかりません")
+        raise RuntimeError(f"{_CHROMA_TMP_DIR} not found after extracting ChromaDB archive")
 
 
 # server.py（config経由）が CHROMA_DB_PATH を読み込む前に、Lambda用のパスへ切り替える。

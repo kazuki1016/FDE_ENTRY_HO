@@ -84,6 +84,7 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 | オリジンリクエストポリシー（実装時にAC-INFRA-4の検証で訂正） | Lambda Function URL向けビヘイビアは `Authorization` ヘッダーをオリジンに転送するオリジンリクエストポリシーを使用する（理由: 4.3章参照。ブラウザが自動付与するBasic認証ヘッダーをFastAPI層の検証にも使う）。当初 `AllViewer` マネージドポリシーを採用したが、これは`Host`ヘッダーも転送してしまい、Lambda Function URL側のドメイン検証と不一致になって`AccessDeniedException`（403）が返る不具合が実装時に発覚した。**確定**: `AllViewerExceptHostHeader`マネージドポリシー（`Host`ヘッダーのみ除外）に変更する。当該ビヘイビアは`CachingDisabled`（P1参照）のため、認証ヘッダー付きレスポンスが他ユーザーに誤配信されるリスクはない（`@metsukeyaku`再レビュー指摘E-NEW-2）。将来的にキャッシュを有効化する変更を行う場合は、この相互作用に注意すること |
 | 許可HTTPメソッド（実装時にAC-INFRA-4の検証で発覚） | `/ask`・`/health`・`/stats`ビヘイビアは`allowed_methods`を明示的に`ALLOW_ALL`（GET/HEAD/OPTIONS/PUT/POST/PATCH/DELETE）に設定する。未設定時のCloudFrontデフォルトはGET/HEADのみで、`POST /ask`がCloudFrontに403拒否される |
 | ルートオブジェクト（実装時にAC-INFRA-1-3の検証で発覚） | Distributionに`default_root_object="index.html"`を設定する。未設定だとルートパス`/`へのリクエストが空キーのオブジェクトを探しに行き、S3（OAC経由）が`AccessDenied`を返す |
+| オリジンのread_timeout（実装時にAC-INFRA-3-3検証後の復旧確認で発覚） | Lambda Function URL向け`FunctionUrlOrigin`は`read_timeout=Duration.seconds(60)`を明示的に設定する。既定値30秒だとコールドスタート（S3ダウンロード・展開＋Secrets Manager取得＋embeddingモデルロード＋Bedrock呼び出し）が上限を超え、CloudFrontが504 Gateway Timeoutを返す（実測30.3秒で504発生を確認）。8.3章E-NEW-1で事前に懸念されていた「コールドスタートが30〜60秒程度になるリスク」が実際に顕在化した形。60秒はNFR-1のSLAと整合し、AWSサポート申請なしで設定可能な上限のため採用する（Lambda自体のタイムアウトは90秒のままで変更しない） |
 | カスタムドメイン | **確定**: 使用しない。CloudFrontのデフォルトドメイン（`*.cloudfront.net`）を使用する（ユーザー確認済み） |
 | [推奨デフォルト値（PENDING）] キャッシュ設定 | `/ask`・`/health`・`/stats` ルートはキャッシュ無効化（`CachingDisabled` マネージドポリシー）を推奨。回答は質問ごとに動的なためキャッシュ対象外。S3側の静的ファイルはCloudFrontのデフォルトキャッシュ動作でよい |
 | [推奨デフォルト値（PENDING）] スロットリング設定 | 明示的なレート制限は設定しない（AWS標準のDDoS保護のみ）。低頻度アクセスのハンズオン用途のため追加設定は不要と判断 |
@@ -386,7 +387,7 @@ spec.mdと同じ「入力 | 操作 | 期待出力」の3列形式で定義する
 |---|---|---|---|
 | AC-INFRA-3-1 | S3上にChromaDBアーカイブが配置済みの状態、`/tmp/chroma_db` が存在しないコールドスタート | Lambda関数を起動して `POST /ask` を呼ぶ | S3からアーカイブをダウンロードして `/tmp/chroma_db` に展開し、HTTP 200 と正常な回答が返ること |
 | AC-INFRA-3-2 | `/tmp/chroma_db` が既に存在するウォームスタート | 同一Lambda実行環境で `POST /ask` を再度呼ぶ | S3へのダウンロードが発生せず（ログ等で確認）、HTTP 200 と正常な回答が返ること |
-| AC-INFRA-3-3 | S3上のアーカイブが存在しない（または空） | Lambda関数を起動して `POST /ask` を呼ぶ | HTTP 500 が返ること（初期化失敗） |
+| AC-INFRA-3-3（実装時の検証で訂正） | S3上のアーカイブが存在しない（または空） | Lambda関数を起動して `POST /ask` を呼ぶ | **HTTP 502** が返ること（初期化失敗）。ChromaDBのダウンロードは`lambda_handler.py`のモジュール読み込み時（Mangum/FastAPI初期化より前）に行われるため、失敗時はLambda自体の初期化エラー（`Runtime.ExitError`）となりFastAPIの`HTTPException`を経由しない。Lambda Function URLは初期化エラーを502として返す仕様であり、CLAUDE.md 5.2章の「200/400/403/500に限定」はFastAPIエンドポイントのエラー表現に関する制約のため、この初期化フェーズの失敗は対象外と解釈する。当初は500を想定していたが実装時の検証で502が正しい実態と判明した。あわせて、初期化フェーズの例外メッセージに日本語（非ASCII文字）を含めると`awslambdaric`の`post_init_error`が`UnicodeEncodeError`で二次クラッシュすることが判明したため、`lambda_handler.py`内の例外メッセージは英語で記述する（FastAPI経由の日本語レスポンスにはならない箇所のため、5.1章の「常に日本語で生成」はここでは適用対象外） |
 
 ### AC-INFRA-4: エンドツーエンド動作（AWS構成）
 

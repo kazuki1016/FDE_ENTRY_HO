@@ -171,12 +171,19 @@ spec_infra.md 4.3章に記述されている変更をステップ分割して実
   - AC-INFRA-1-1/1-2/1-3（CloudFront Basic認証）: PASS
   - AC-INFRA-2-1/2-2/2-3/2-4（FastAPI層Basic認証・Function URL直接）: PASS
   - AC-INFRA-3-1/3-2（コールド/ウォームスタート）: PASS（CloudWatch Logsで確認。コールド18.4秒、ウォーム5.8〜6.8秒）
-  - AC-INFRA-3-3（S3アーカイブ不在時500）: 未実施（本番S3オブジェクトの一時退避が必要なため、実施方法を要確認）
+  - AC-INFRA-3-3（S3アーカイブ不在時にエラーが返ること）: PASS（本番S3オブジェクトを一時退避して検証、直後に復元済み。期待値は**HTTP 502**に訂正。spec_infra.md AC-INFRA-3-3参照）
   - AC-INFRA-4-1/4-3（CloudFront経由 /ask・/health）: PASS
   - AC-INFRA-4-2（ブラウザでのUI動作）: 未実施（ブラウザでの手動確認が必要）
-  - AC-INFRA-5-1（60秒以内のレイテンシ）: PASS（ウォームスタート5.8〜7.0秒）
+  - AC-INFRA-5-1（60秒以内のレイテンシ）: PASS（ウォームスタート5.8〜7.0秒、コールドスタート31.7秒）
   - AC-INFRA-5-2（無料枠内のコスト）: 未実施（利用実績が蓄積してからAWS Billingで確認）
-  - 実装時に3件の不具合発覚・修正済み（spec_infra.md 2.1章・2.6章に記録）: ①`default_root_object`未設定によるルートパスAccessDenied、②`HF_HOME`未固定によるembeddingモデル再ダウンロード失敗、③オリジンリクエストポリシー`AllViewer`のHostヘッダー転送によるLambda Function URLのAccessDeniedException
+  - 実装時に5件の不具合発覚・修正済み（spec_infra.md 2.1章・2.6章に記録）:
+    1. `default_root_object`未設定によるルートパスAccessDenied
+    2. `HF_HOME`未固定によるembeddingモデル再ダウンロード失敗
+    3. オリジンリクエストポリシー`AllViewer`のHostヘッダー転送によるLambda Function URLのAccessDeniedException
+    4. `allowed_methods`未設定によるPOST /askの403拒否
+    5. Lambda初期化フェーズの例外メッセージに日本語を含めると`awslambdaric`が`UnicodeEncodeError`で二次クラッシュする問題（`lambda_handler.py`の例外メッセージを英語化して解消）
+    6. `FunctionUrlOrigin`の`read_timeout`既定値30秒がコールドスタート時間を下回り504 Gateway Timeoutが発生（60秒に変更して解消。spec_infra.md 8.3章E-NEW-1の懸念が実測で顕在化）
+  - AC-INFRA-3-3検証時、本番S3オブジェクトの一時削除と復元の間にLambda環境変数へ手動で加えたテスト用の値（`FORCE_COLD_START_TEST`）がCloudFormationの管理外ドリフトとして残存する事象が発生し、`aws lambda update-function-configuration`で手動是正した（CDKデプロイは変更のないプロパティを再適用しないため、手動でのライブリソース変更はCDK側からは検知されない点に注意）
 
 #### Step 16: コンフォーマンス監査 + 品質ゲート最終確認
 - **内容**: spec_infra.md 8.6章の品質ゲート5条件（テストGREEN、eval80%以上、監査差分ゼロ、認証バイパスゼロ、metsukeyakuレビューPASS/CONDITIONAL）を確認

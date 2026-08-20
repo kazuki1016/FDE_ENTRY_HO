@@ -106,7 +106,16 @@ class MainStack(Stack):
 
         # ── 2.1章: CloudFront。/ask・/health・/statsのみLambda Function URLへ、それ以外はS3へ ──
         s3_origin = origins.S3BucketOrigin.with_origin_access_control(frontend_bucket)
-        lambda_origin = origins.FunctionUrlOrigin(function_url)
+        lambda_origin = origins.FunctionUrlOrigin(
+            function_url,
+            # read_timeoutの既定値30秒だとコールドスタート（S3ダウンロード・展開＋
+            # Secrets Manager取得＋embeddingモデルロード＋Bedrock呼び出し）が
+            # 上限を超えCloudFrontが504を返す（実装時にAC-INFRA-3-3検証後の
+            # 復旧確認で実測30.3秒により発覚。spec_infra.md 8.3章E-NEW-1で
+            # 事前に懸念されていたリスクが実際に顕在化した）。NFR-1のSLA（60秒）に
+            # 合わせて60秒に設定する（AWSサポート申請なしで設定可能な上限）。
+            read_timeout=Duration.seconds(60),
+        )
 
         api_behavior = cloudfront.BehaviorOptions(
             origin=lambda_origin,
