@@ -289,7 +289,7 @@ AWS構成でもLLMバックエンドは**spec.mdのAmazon Bedrock経由の構成
 
 ### 5.2 理由
 
-spec.mdで定義されている `AnthropicBedrock` クライアント（ベアラートークン方式のBedrock APIキー認証）は、OS依存のないHTTPS API呼び出しである。当初のローカルLLM（bonsai-8b-mlx、Apple Silicon専用MLXフレームワーク）とは異なり、Lambdaの標準Linux実行環境（Python 3.11）上でも問題なく動作する。したがって、AWS構成に切り替えるという理由だけでLLM呼び出し経路を変更する必要はない（Simplicity First: 動作する既存構成を理由なく変更しない）。
+spec.mdで定義されている `AnthropicBedrock` クライアント（ベアラートークン方式のBedrock APIキー認証）は、OS依存のないHTTPS API呼び出しである。当初のローカルLLM（bonsai-8b-mlx、Apple Silicon専用MLXフレームワーク）とは異なり、Lambdaの標準Linux実行環境（Python 3.12。実装時の発見により3.11から変更。2.4章参照）上でも問題なく動作する。したがって、AWS構成に切り替えるという理由だけでLLM呼び出し経路を変更する必要はない（Simplicity First: 動作する既存構成を理由なく変更しない）。
 
 ### 5.3 実装方針
 
@@ -417,7 +417,7 @@ spec.mdの技術スタック（6.1章）に加えて、以下のコンポーネ�
 | CDN・認証 | Amazon CloudFront + CloudFront Functions + CloudFront KeyValueStore | Basic認証（フロント層）、TLS終端 |
 | 静的ホスティング | Amazon S3 | CloudFront経由でのみアクセス（OAC設定） |
 | API呼び出し口 | AWS Lambda Function URL | API Gatewayは不使用（1章参照）。認証タイプ `NONE` |
-| サーバーレス実行環境 | AWS Lambda | Python 3.11ランタイム |
+| サーバーレス実行環境 | AWS Lambda | Python 3.12ランタイム（実装時の発見により3.11から変更。2.4章・2.6章参照） |
 | Lambdaアダプタ | Mangum | FastAPIをLambdaで動作させる |
 | ChromaDB永続化 | Amazon S3 | tar.gzアーカイブを格納 |
 | Lambdaイメージレジストリ | Amazon ECR | Lambda Container Image用（2.6章。`@metsukeyaku`指摘R-1対応） |
