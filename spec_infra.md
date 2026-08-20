@@ -96,6 +96,7 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 - 検証失敗時: HTTP 401を返しチャレンジヘッダー（`WWW-Authenticate: Basic realm="..."` ）を付与してブラウザに認証ダイアログを表示させる
 - ユーザー名・パスワードの管理方法: **確定**: CloudFront KeyValueStore に格納する。CloudFront FunctionsのJSランタイムには外部API呼び出し機能がなく、Secrets Managerを実行時に直接呼び出すことはできない（AWS既知の制約）。そのため、Secrets Managerを認証情報の一元管理先（source of truth）とし、デプロイ時（またはローテーション時）にSecrets ManagerからKeyValueStoreへ値を同期する運用とする
 - 同期メカニズム（`@metsukeyaku`指摘 C-4 により追記）: Secrets Managerから値を読み取りKeyValueStoreへ書き込む処理を `cdk deploy` の一部として実行する。追加の手動スクリプトやCIステップは不要（`cdk deploy` 一発で完結させる方針を維持）。Secrets Manager側のシークレットは事前に（初回デプロイ前に）作成されている必要がある点に注意（`@metsukeyaku`再レビュー指摘E-NEW-3: 値が変わっていなくてもデプロイのたびにAPIコールが発生しうるが、低頻度デプロイのため実害は軽微と判断し許容する）
+- **確定**（`@metsukeyaku`最終レビュー指摘C-2により追記）: `CustomResource`のプロパティは`KvsArn`・`SecretArn`に加え、デプロイのたびに変化する`ForceUpdate`（現在時刻のISO 8601文字列）を含める。`KvsArn`・`SecretArn`はSecrets Manager側でシークレット値（Basic認証情報）をローテーションしてもARN自体は変わらないため、これらのみをプロパティにするとCloudFormationがCustomResourceの変更を検知できず、次回`cdk deploy`でもKVS同期がスキップされてしまう不具合が実装時に発覚した。`ForceUpdate`により、上記E-NEW-3で許容した「デプロイのたびに同期が走る」という当初の想定どおりの動作を保証する
   - **実装方式の訂正（実装時の発見）**: 当初想定していたCDKの `AwsCustomResource`（単発SDK呼び出し）では表現できないと判明した。CloudFront KeyValueStoreの`UpdateKeys` APIはKVS自体のETagによる楽観ロックを要求し、「`DescribeKeyValueStore`でETag取得→`UpdateKeys`」の2段階呼び出しが必要なため、専用の小さなLambda関数（インライン、boto3使用）+ `custom_resources.Provider` + `CustomResource` の組み合わせに変更した（`infra/stacks/main_stack.py`の`_KVS_SYNC_LAMBDA_CODE`参照）。`cdk deploy`一発で完結する点・追加の手動ステップが不要な点は変わらない
 - [推奨デフォルト値（PENDING）] レルム文字列 | `"FDE RAG System"`（スペシャルハンズオン手順書のNginx設定 `auth_basic "FDE RAG System";` を踏襲）
 
@@ -483,6 +484,7 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 | 6章「401は使用しない、認証失敗は403で統一」 | FastAPI層は403で統一。CloudFront Functions層はブラウザ認証ダイアログのために401を使用（CloudFront層はFastAPIの外側であり、同規定の適用範囲外と解釈する） |
 | 6章「ngrokはCLIツール呼び出しのため抽象化しない」 | AWS構成ではngrokは使用しない。CloudFront+Lambda Function URLへの切り替えはインフラ層の変更であり、コードへの影響はLambdaエントリーポイント（Mangum）の追加のみ |
 | 6章「APIキー・トークンをソースコードにハードコードしない」 | 継承。AWS Secrets Manager（バックエンド）・KeyValueStore（フロント、Secrets Manager同期）で管理する（8.1・8.4章） |
+| 5.2「CloudFront層・FastAPI層とも`hmac.compare_digest`によるタイミング攻撃対策必須」（`@metsukeyaku`最終レビュー指摘C-1により追記） | **一部読み替え**: FastAPI層（`server.py`）は`hmac.compare_digest`を使用する。CloudFront Functions層（`cf_auth.js`）はJSランタイムに`crypto.timingSafeEqual`相当の機能がなく、タイミング安全な比較を実装できないプラットフォーム制約があるため、通常の文字列比較（`!==`）を使用する。FastAPI層の`hmac.compare_digest`が第2防衛線として機能するため、実質的なリスクは軽微と判断する |
 
 ---
 

@@ -41,7 +41,7 @@
 | 6 | 13 | 初回 cdk deploy 実行 | （インフラ作成） | DONE | AWSリソース作成完了 — 確認済み（27/27 CREATE_COMPLETE）。CloudFront: dgjeh1trfl9lf.cloudfront.net |
 | 6 | 14 | 初回 ChromaDB S3 アップロード | （データ配置） | DONE | S3にアーカイブが配置されること — 確認済み。GET /statsでchunk_count=109を確認 |
 | 6 | 15 | E2Eおよびインフラ受け入れ基準検証 | （テスト実行） | DONE | AC-INFRA-1〜5 全件PASS — 確認済み。AC-INFRA-4-2は自動化上の制約により部分検証（実ブラウザでの最終確認を推奨）、AC-INFRA-5-2は利用実績蓄積後にAWS Billingで別途確認する運用事項として記録（詳細はStep 15進捗欄） |
-| 6 | 16 | コンフォーマンス監査 + 品質ゲート確認 | （監査実行） | BLOCKED | 8.6章 品質ゲート5条件すべて充足 |
+| 6 | 16 | コンフォーマンス監査 + 品質ゲート確認 | （監査実行） | DONE | 8.6章 品質ゲート5条件すべて充足 — 確認済み。metsukeyaku判定CONDITIONAL、条件2件対応済み（詳細はStep 16欄） |
 
 ---
 
@@ -189,6 +189,15 @@ spec_infra.md 4.3章に記述されている変更をステップ分割して実
 - **内容**: spec_infra.md 8.6章の品質ゲート5条件（テストGREEN、eval80%以上、監査差分ゼロ、認証バイパスゼロ、metsukeyakuレビューPASS/CONDITIONAL）を確認
 - **ゲート条件**: 5条件すべて充足
 - **依存関係**: Step 15 の完了後
+- **結果**: 5条件すべて充足（DONE）
+  1. 全ユニットテストGREEN: 15件PASS
+  2. evalスコア80%以上: 9/10（90%）
+  3. コンフォーマンス監査差分ゼロ: auditorエージェント実施。MATCH 54件・MISMATCH 0件（`audit/conformance_report_26082023_0001.md`）。軽微な文書記述の古さ3件（Python 3.11→3.12の更新漏れ）を検出・修正済み
+  4. 認証バイパス脆弱性ゼロ: auditorが確認（FastAPI層フェイルクローズ・CloudFront Functions層フェイルクローズとも良好）
+  5. metsukeyakuレビュー: **CONDITIONAL**。条件2件に対応済み
+     - C-1: CloudFront Functions層（`cf_auth.js`）がJSランタイムの制約でタイミング安全比較を実装できない点がspec_infra.md未記載だった → 8.7章に追記（コード変更なし）
+     - C-2: KVS同期用`CustomResource`のプロパティ（`KvsArn`・`SecretArn`）がSecrets Managerのシークレットローテーション時に変化しないため、CloudFormationが変更を検知せず同期がスキップされる不具合 → `ForceUpdate`（デプロイ時刻）プロパティを追加し毎回同期されるよう修正、`cdk deploy`で反映・KvsSyncFunctionの実行をCloudWatch Logsで確認済み
+     - 軽微な指摘（L-1〜L-3）・見落とし候補（E-1〜E-3）は品質ゲートのブロッカーではないため対応は任意。将来の改善事項として記録するに留める
 
 ---
 

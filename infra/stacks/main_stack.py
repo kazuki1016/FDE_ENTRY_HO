@@ -8,6 +8,7 @@ AWS_BEARER_TOKEN_BEDROCKをキーに持つ1つのシークレット）は、人�
 と合わせて実施）で事前に作成されている前提。ここではSecret.from_secret_name_v2で
 参照するのみで、作成はしない（spec_infra.md 8.2章）。
 """
+import datetime as _dt
 import pathlib
 
 from aws_cdk import (
@@ -206,6 +207,12 @@ class MainStack(Stack):
             properties={
                 "KvsArn": kvs.key_value_store_arn,
                 "SecretArn": secret.secret_arn,
+                # KvsArn・SecretArnはSecrets Manager側でシークレット値（Basic認証情報）を
+                # ローテーションしてもARN自体は変わらないため、このプロパティだけでは
+                # cdk deploy時にCloudFormationがUpdateを検知せずKVS同期がスキップされてしまう
+                # （実装時にmetsukeyaku最終レビュー指摘C-2で発覚）。デプロイのたびに変化する
+                # 値を追加し、synth 2.1章の想定どおり毎回同期を強制する。
+                "ForceUpdate": str(_dt.datetime.now(_dt.timezone.utc).isoformat()),
             },
         )
 
