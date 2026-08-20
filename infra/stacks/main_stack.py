@@ -42,9 +42,13 @@ class MainStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # ── 2.5章: S3（ChromaDB永続化）。フロントエンド用とは別バケット（P6） ──
+        # バケット名はアカウントIDを含めて固定する（グローバルに一意にするため）。
+        # デプロイ前から名前が判明するため、GitHub ActionsのCHROMA_S3_BUCKET変数を
+        # 事前に設定できる（ユーザー確認済み。付記#1・要確認#6を解消）。
         chroma_bucket = s3.Bucket(
             self,
             "ChromaDbBucket",
+            bucket_name=f"fde-rag-chroma-{self.account}",
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.RETAIN,
         )
@@ -53,6 +57,7 @@ class MainStack(Stack):
         frontend_bucket = s3.Bucket(
             self,
             "FrontendBucket",
+            bucket_name=f"fde-rag-frontend-{self.account}",
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             removal_policy=RemovalPolicy.RETAIN,
         )

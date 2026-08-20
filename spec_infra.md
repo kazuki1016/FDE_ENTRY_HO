@@ -533,7 +533,7 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 
 | # | 箇所 | 内容 |
 |---|---|---|
-| 1 | 2.2 S3（フロントエンド） | バケット名（実装時にアカウントID等を含め機械的に決定） |
+| ~~1~~ | 2.2 S3（フロントエンド） | **解消**: `fde-rag-frontend-<AWSアカウントID>`に固定した（ユーザー確認済み。`infra/app.py`でCDK_DEFAULT_ACCOUNTを明示的にStackへ渡し、`main_stack.py`でアカウントIDを含むバケット名を組み立てる。GitHub ActionsのVariable設定前に判明させるため） |
 | 2 | 3.2 データ更新フロー | アップロード先のS3バケットパス（オブジェクトキー）。2.5章のバケット名確定後に決定 |
 | 3 | 7 受け入れ基準 AC-INFRA-5-2 | 無料枠内に収まる具体的なリクエスト数の閾値 |
 | 4 | 9.4 IAMロール（OIDC） | デプロイ用・reingest用ロールの信頼関係（trust policy）の具体的な設定内容 |
@@ -550,7 +550,7 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 | P3 | 2.1 / 4.1 CloudFront Functions | レルム文字列 | `"FDE RAG System"` |
 | P4 | 2.2 S3（フロントエンド） | リージョン | `ap-northeast-1` |
 | P5 | 2.4 Lambda | メモリサイズ | **3008MB**（`@metsukeyaku`指摘C-5により1024MBから見直し） |
-| P6 | 2.5 S3（ChromaDB永続化） | バケット名 | フロント用と別バケット |
+| ~~P6~~ | 2.5 S3（ChromaDB永続化） | バケット名 | **解消**: `fde-rag-chroma-<AWSアカウントID>`に固定（フロント用とは別バケット。上記1と同様の理由） |
 | P7 | 2.5 S3（ChromaDB永続化） | リージョン | `ap-northeast-1` |
 | P8 | 3.2 データ更新フロー | アーカイブファイル名 | `chroma_db_latest.tar.gz` 固定 |
 | P9 | 3.2 データ更新フロー | アップロードツール | AWS CLI（`aws s3 cp`） |
