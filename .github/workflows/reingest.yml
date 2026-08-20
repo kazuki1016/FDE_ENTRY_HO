@@ -1,0 +1,57 @@
+# PDF再ingestワークフロー（spec_infra.md 3.2章・9.3章、task.md Step 12）。
+#
+# workflow_dispatch（手動起動）のみをトリガーとする。人間の作業は「新しいPDFをS3の
+# 決められた場所にアップロードする」ことと「このワークフローを起動する」ことの2つだけ。
+# それ以降（ダウンロード・ingest・アーカイブ化・配置）はすべて自動化する。
+#
+# 事前設定が必要（人間承認Bで作成したリソースに合わせてリポジトリ設定で登録すること）:
+#   Variables: AWS_REINGEST_ROLE_ARN（OIDC用IAMロールARN。S3 GetObject/PutObjectのみの
+#              限定権限。spec_infra.md 9.4章）
+#              AWS_REGION
+#              CHROMA_S3_BUCKET（ChromaDB永続化用バケット名。source PDFも同バケット内の
+#              別キーに置く。spec_infra.md 2.5章・付記#1）
+name: Reingest PDF
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  reingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_REINGEST_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install dependencies
+        # actions/cache(setup-pythonのcache設定)によりpipキャッシュを効かせ、
+        # 2回目以降のPyTorch等の重い依存関係インストールを高速化する
+        # （spec_infra.md 9.3章 E-3）。
+        run: pip install -r requirements.txt
+
+      - name: Download source PDF from S3
+        run: |
+          aws s3 cp "s3://${{ vars.CHROMA_S3_BUCKET }}/source/harness_engineering_intro.pdf" ./harness_engineering_intro.pdf
+
+      - name: Run ingest
+        run: PYTHONPATH=src python -m ingest
+
+      - name: Archive ChromaDB
+        run: tar czf chroma_db_latest.tar.gz -C data chroma_db
+
+      - name: Upload ChromaDB archive to S3
+        run: |
+          aws s3 cp chroma_db_latest.tar.gz "s3://${{ vars.CHROMA_S3_BUCKET }}/chroma_db_latest.tar.gz"

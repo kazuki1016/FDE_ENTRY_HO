@@ -1,0 +1,71 @@
+# AWS構成のデプロイワークフロー（spec_infra.md 9.2章、task.md Step 11）。
+#
+# リリースの公開（release published）をトリガーに、品質ゲート(pytest)→ cdk deploy を
+# 実行する（ユーザー確認済み。push毎ではなく、リリースという明示的な意思表示を
+# デプロイの起点にする）。
+# eval実行はCIに含めない（spec_infra.md 9.2章 C-3。Bedrock課金とChromaDB準備の
+# 複雑化を避けるため。auditor・metsukeyakuレビュー同様、merge前に人間が手動実行する）。
+#
+# 事前設定が必要（人間承認B・Cで作成したリソースに合わせてリポジトリ設定で登録すること）:
+#   Secrets:   APP_API_KEY, AWS_BEARER_TOKEN_BEDROCK
+#              （テスト実行用。ngrok構成の認証・実際のBedrock呼び出しに使う既存の値と同じもの）
+#   Variables: AWS_DEPLOY_ROLE_ARN（OIDC用IAMロールARN。spec_infra.md 9.4章）
+#              AWS_REGION（例: ap-northeast-1）
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+# OIDCでAWSに接続するために必要（長期アクセスキーは使用しない。spec_infra.md 9.2章）
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build ChromaDB for tests
+        # CIランナーはdata/chroma_db/を持たない（.gitignore対象）ため、
+        # リポジトリに同梱済みのPDF（harness_engineering_intro.pdf）から都度生成する。
+        run: PYTHONPATH=src python -m ingest
+
+      - name: Run tests
+        run: pytest tests/
+        env:
+          APP_API_KEY: ${{ secrets.APP_API_KEY }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: actions/setup-node@v6
+        with:
+          # Node 20は非推奨(EOL)のため22を使用する（ユーザー確認済み）
+          node-version: "22"
+
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk
+
+      - name: Install CDK app dependencies
+        working-directory: infra
+        run: pip install -r requirements.txt
+
+      - name: cdk deploy
+        working-directory: infra
+        run: cdk deploy --require-approval never

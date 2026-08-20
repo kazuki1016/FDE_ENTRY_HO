@@ -492,7 +492,7 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 
 | 項目 | 値 |
 |---|---|
-| トリガー | mainブランチへのpush（またはPRのmerge） |
+| トリガー | **確定**（ユーザー確認済み、実装時に訂正）: リリースの公開（GitHub Releaseの`published`イベント）。push毎の自動デプロイではなく、リリースという明示的な意思表示をデプロイの起点にする |
 | 実行内容（`@metsukeyaku`指摘 C-3 により訂正） | ①`pytest tests/` 実行（失敗したらデプロイ中止） → ②`cdk deploy`（Lambda Container Imageのビルド・pushを含むインフラ全体を更新） |
 | AWS認証 | **確定**: OIDC（OpenID Connect）連携によるIAMロールAssumeRoleを使用する。長期的なAWSアクセスキーをGitHub Secretsに保存しない（CLAUDE.md 6章「APIキー・トークンをハードコードしない」の精神をCI認証にも適用） |
 | Dockerビルド環境 | GitHub Actions標準ランナー（`ubuntu-latest`）にはDockerが標準搭載されているため追加セットアップ不要。`cdk deploy`がイメージのビルド・ECRへのpushを内部で実行する |
@@ -537,6 +537,8 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 | 2 | 3.2 データ更新フロー | アップロード先のS3バケットパス（オブジェクトキー）。2.5章のバケット名確定後に決定 |
 | 3 | 7 受け入れ基準 AC-INFRA-5-2 | 無料枠内に収まる具体的なリクエスト数の閾値 |
 | 4 | 9.4 IAMロール（OIDC） | デプロイ用・reingest用ロールの信頼関係（trust policy）の具体的な設定内容 |
+| 6 | 9.2 / 9.3 CI/CDワークフロー（実装時に判明） | GitHubリポジトリに以下のSecrets/Variablesの設定が必要（人間承認B・Cの完了後に登録する）。未設定の間はワークフローの実行自体は失敗する（YAML構文は妥当）:<br>Secrets: `APP_API_KEY`・`AWS_BEARER_TOKEN_BEDROCK`（deploy.ymlのテスト実行用）<br>Variables: `AWS_DEPLOY_ROLE_ARN`・`AWS_REINGEST_ROLE_ARN`・`AWS_REGION`・`CHROMA_S3_BUCKET` |
+| 7 | 9.3 reingestワークフロー（実装時に判明） | source PDFのS3配置キーを `source/harness_engineering_intro.pdf`（ChromaDB永続化用バケット内、`chroma_db_latest.tar.gz`と同居）と仮決めした。2.5章のバケット名確定・要確認#1と合わせて確定させる |
 | 5 | 2.6 ECR | Lambda Container Imageのベースイメージ（`@metsukeyaku`指摘R-1対応で新設） |
 
 **推奨デフォルト値（PENDING）として記載した項目**（実装をブロックしないが、最終確認が望ましい）:
@@ -556,4 +558,5 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 | P11 | 8.2 環境前提 | Lambda実行ロールの最小権限ポリシー | S3 GetObject限定 + Secrets Manager GetSecretValue限定 + CloudWatch Logs書き込み |
 | P12 | 8.3 パフォーマンス要件 | コールドスタート許容上限 | 数値化せず実測で確認（30〜60秒に達するリスクを許容） |
 | P13 | 9.2 / 9.3 CI/CDワークフロー | ワークフローファイル名 | `.github/workflows/deploy.yml`、`.github/workflows/reingest.yml` |
+| P15 | 9.2 / 9.3 CI/CDワークフロー | 使用するGitHub Actions（`uses:`）のバージョン | `actions/checkout@v6`・`actions/setup-python@v6`・`actions/setup-node@v6`・`aws-actions/configure-aws-credentials@v6`（実装時に確認。node-versionはEOL済みの20ではなく22を使用） |
 | P14 | 2.6 ECR | イメージのライフサイクルポリシー | 直近5世代のみ保持 |

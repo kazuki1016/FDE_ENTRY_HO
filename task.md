@@ -36,8 +36,8 @@
 | 4 | 8 | Lambda + Function URL 定義 | infra/stacks/main_stack.py | DONE | cdk synth が成功すること — 確認済み。AWS_REGIONがLambda予約済み環境変数で手動設定不可と判明し修正 |
 | 4 | 9 | CloudFront + ルーティング + OAC 定義 | infra/stacks/main_stack.py | DONE | cdk synth が成功すること — 確認済み |
 | 4 | 10 | CloudFront Functions + KVS + SM同期定義 | infra/stacks/main_stack.py, infra/cf_auth.js | DONE | cdk synth が成功すること — 確認済み。当初想定のAwsCustomResourceでは表現できずカスタムLambda+Providerに変更（詳細はspec_infra.md） |
-| 5 | 11 | deploy.yml 作成 | .github/workflows/deploy.yml | PENDING | YAML構文チェック通過 |
-| 5 | 12 | reingest.yml 作成 | .github/workflows/reingest.yml | PENDING | YAML構文チェック通過 |
+| 5 | 11 | deploy.yml 作成 | .github/workflows/deploy.yml | DONE | YAML構文チェック通過 — 確認済み。人間承認A(GitHubリポジトリ)完了済み |
+| 5 | 12 | reingest.yml 作成 | .github/workflows/reingest.yml | DONE | YAML構文チェック通過 — 確認済み |
 | 6 | 13 | 初回 cdk deploy 実行 | （インフラ作成） | BLOCKED（要人間承認D） | AWSリソース作成完了 |
 | 6 | 14 | 初回 ChromaDB S3 アップロード | （データ配置） | BLOCKED | S3にアーカイブが配置されること |
 | 6 | 15 | E2Eおよびインフラ受け入れ基準検証 | （テスト実行） | BLOCKED | AC-INFRA-1〜5 全件PASS |
