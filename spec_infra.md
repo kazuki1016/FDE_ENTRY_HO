@@ -92,7 +92,8 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 - 検証対象: HTTP `Authorization` ヘッダー（`Basic` スキーム）
 - 検証失敗時: HTTP 401を返しチャレンジヘッダー（`WWW-Authenticate: Basic realm="..."` ）を付与してブラウザに認証ダイアログを表示させる
 - ユーザー名・パスワードの管理方法: **確定**: CloudFront KeyValueStore に格納する。CloudFront FunctionsのJSランタイムには外部API呼び出し機能がなく、Secrets Managerを実行時に直接呼び出すことはできない（AWS既知の制約）。そのため、Secrets Managerを認証情報の一元管理先（source of truth）とし、デプロイ時（またはローテーション時）にSecrets ManagerからKeyValueStoreへ値を同期する運用とする
-- 同期メカニズム（`@metsukeyaku`指摘 C-4 により追記）: **確定**: CDKの `AwsCustomResource`（デプロイ時に一度だけ実行されるカスタムリソース）で、Secrets Managerから値を読み取りKeyValueStoreの `PutKey` APIへ書き込む処理を `cdk deploy` の一部として実行する。追加の手動スクリプトやCIステップは不要（`cdk deploy` 一発で完結させる方針を維持）。Secrets Manager側のシークレットは事前に（初回デプロイ前に）作成されている必要がある点に注意（`@metsukeyaku`再レビュー指摘E-NEW-3: 値が変わっていなくてもデプロイのたびにAPIコールが発生しうるが、低頻度デプロイのため実害は軽微と判断し許容する）
+- 同期メカニズム（`@metsukeyaku`指摘 C-4 により追記）: Secrets Managerから値を読み取りKeyValueStoreへ書き込む処理を `cdk deploy` の一部として実行する。追加の手動スクリプトやCIステップは不要（`cdk deploy` 一発で完結させる方針を維持）。Secrets Manager側のシークレットは事前に（初回デプロイ前に）作成されている必要がある点に注意（`@metsukeyaku`再レビュー指摘E-NEW-3: 値が変わっていなくてもデプロイのたびにAPIコールが発生しうるが、低頻度デプロイのため実害は軽微と判断し許容する）
+  - **実装方式の訂正（実装時の発見）**: 当初想定していたCDKの `AwsCustomResource`（単発SDK呼び出し）では表現できないと判明した。CloudFront KeyValueStoreの`UpdateKeys` APIはKVS自体のETagによる楽観ロックを要求し、「`DescribeKeyValueStore`でETag取得→`UpdateKeys`」の2段階呼び出しが必要なため、専用の小さなLambda関数（インライン、boto3使用）+ `custom_resources.Provider` + `CustomResource` の組み合わせに変更した（`infra/stacks/main_stack.py`の`_KVS_SYNC_LAMBDA_CODE`参照）。`cdk deploy`一発で完結する点・追加の手動ステップが不要な点は変わらない
 - [推奨デフォルト値（PENDING）] レルム文字列 | `"FDE RAG System"`（スペシャルハンズオン手順書のNginx設定 `auth_basic "FDE RAG System";` を踏襲）
 
 ### 2.2 S3（フロントエンド配信）
@@ -130,7 +131,7 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 | `/tmp` の用途 | ChromaDBのローカルキャッシュ（`/tmp/chroma_db`）を展開する。容量上限はLambda仕様による（通常512MB〜10GB） |
 | [推奨デフォルト値（PENDING）、`@metsukeyaku`指摘 C-5 により見直し] メモリサイズ | **3008MB**（旧案の1024MBはPyTorch+sentence-transformersのモデルロードに不足する可能性が高いと指摘されたため引き上げ）。Lambdaはメモリ量に比例してCPU割当も増えるため、コールドスタート短縮にも寄与する。実装後に実測して調整すること |
 | タイムアウト設定 | **確定**: 90秒。Lambda Function URL採用によりAPI Gatewayの30秒キャップが解消されたため、NFR-1の60秒に加えてS3ダウンロード・展開等のコールドスタート分の余裕を持たせる |
-| 環境変数・シークレットの管理 | **確定**: AWS Secrets Manager で管理する（ユーザー指定）。Basic認証のユーザー名・パスワード、Bedrock APIキー（`AWS_BEARER_TOKEN_BEDROCK`）を格納する。Lambdaランタイムはコールドスタート時に一度Secrets Managerから取得し、実行環境のメモリ上にキャッシュする（ウォーム呼び出しのたびに再取得しない。Secrets Manager APIコール数とレイテンシを抑えるため）。`AWS_REGION`はSecrets Manager対象外の非機密値のため通常のLambda環境変数でよい |
+| 環境変数・シークレットの管理 | **確定**: AWS Secrets Manager で管理する（ユーザー指定）。Basic認証のユーザー名・パスワード、Bedrock APIキー（`AWS_BEARER_TOKEN_BEDROCK`）を格納する。Lambdaランタイムはコールドスタート時に一度Secrets Managerから取得し、実行環境のメモリ上にキャッシュする（ウォーム呼び出しのたびに再取得しない。Secrets Manager APIコール数とレイテンシを抑えるため）。`AWS_REGION`は**Lambdaランタイムが自動設定する予約済み環境変数**（実装時に発覚: CDKで手動設定しようとすると`ReservedEnvironmentVariable`エラーになる）であり、明示的な設定は不要・不可。`config.py`の`os.getenv("AWS_REGION", ...)`はLambda組み込みの値をそのまま読む |
 | VPC接続 | **確定**: 不要。ChromaDBはS3経由でローカルキャッシュ化するため、VPC・EFSは使用しない |
 
 ### 2.5 S3（ChromaDB永続化）
@@ -158,6 +159,7 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 | 依存関係（`@metsukeyaku`再レビュー指摘L-1により追記） | **確定**: `requirements.txt`に`mangum`パッケージを追加する（現状未記載）。Dockerfileでは`requirements.txt`をそのままインストールする |
 | torchのビルド（実装時の発見により追記） | **確定**: `torch`はデフォルトでCUDA同梱版がインストールされ`nvidia-*`パッケージ込みで4GB超になり、Lambdaの10GB上限を圧迫する（実装時に10.1GBで超過を確認）。`--index-url https://download.pytorch.org/whl/cpu`でCPU専用ビルドを明示的にインストールする（LambdaはCPUのみでnvidiaパッケージは不要）。この対応でイメージサイズは3.82GBまで縮小した |
 | requirements.txtからの除外（実装時の発見により追記） | **確定**: `pymupdf`（PDF取り込み専用。Cコンパイラなしではソースビルド不可）・`pyngrok`（ngrok構成専用）はLambda実行時に不要なため、Dockerfile内で`grep -v`により除外してインストールする。`ingest.py`の`import fitz`は`extract_chunks`関数内への遅延importに変更済み（Lambda実行パスでは呼ばれないため） |
+| `.dockerignore`（実装時の発見により追記） | **確定**: プロジェクトルートに`.dockerignore`が必要。CDKの`DockerImageCode.from_image_asset()`はビルドコンテキストとしてプロジェクトルート全体をコピーするため、これがないと`.venv/`（数GB）や`infra/cdk.out/`自身（再帰的に自己参照し無限増殖する）まで含めてコピーしようとし、ディスクを圧迫して`ENOSPC`でビルドが失敗する（実装時に実際に発生し、ホストディスクの空き容量が557MBまで逼迫した）。`.venv/`・`.git/`・`data/`・`logs/`・`tests/`・`infra/cdk.out/`・`*.pdf`等を除外する |
 | embeddingモデルの重み（`@metsukeyaku`再レビュー指摘L-2・E-NEW-1により追記） | **確定**: `SentenceTransformer`のモデル重みはビルド時にContainer Imageへ事前同梱する（実行時のHugging Faceからのダウンロードはコールドスタートを不安定・長時間化させるため行わない）。DockerfileのビルドステップでHugging Faceからモデルをダウンロードしイメージ内にキャッシュする |
 | ライフサイクルポリシー | [推奨デフォルト値（PENDING）] 古いイメージの自動削除（例: 直近5世代のみ保持）を設定し、ECRのストレージ費用を抑える |
 

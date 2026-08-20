@@ -1,0 +1,20 @@
+# Lambda Container Image（Dockerfile）のビルドコンテキストから除外する。
+# 除外しないと、DockerImageCode.from_image_asset()がプロジェクトルート全体
+# （.venvや自分自身のinfra/cdk.out含む）をコピーしようとしてディスクを圧迫する
+# （実装時に発覚。infra/cdk.outが再帰的に自分自身を含んでしまいENOSPCでビルド失敗した）。
+.venv/
+.env
+.git/
+data/
+logs/
+audit/
+evals/
+tests/
+__pycache__/
+*.pyc
+.pytest_cache/
+infra/cdk.out/
+infra/.venv/
+node_modules/
+*.pdf
+.DS_Store

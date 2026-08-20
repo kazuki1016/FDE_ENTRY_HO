@@ -32,10 +32,10 @@
 | 2 | 4 | server.py Basic認証・ログ分岐 | src/server.py, tests/test_server.py | DONE | pytest tests/ 全件GREEN（既存11件PASS + 新規Basic認証テスト4件PASS） — 確認済み |
 | 3 | 5 | Lambda ハンドラー作成 | src/lambda_handler.py | DONE | ローカルでの疎通確認 — 確認済み（ウォームスタート相当で`import lambda_handler`成功） |
 | 3 | 6 | Dockerfile 作成 | Dockerfile | DONE | ローカルでのイメージビルド成功 — 確認済み（3.82GB、10GB未満）。実装時にPython 3.12への変更・CPU専用torch・onnxruntime/pymupdf周りの修正が必要と判明（詳細はspec_infra.md 2.4章・2.6章参照） |
-| 4 | 7 | CDK 骨格 + S3×2 定義 | infra/app.py, infra/stacks/main_stack.py | PENDING | cdk synth が成功すること |
-| 4 | 8 | Lambda + Function URL 定義 | infra/stacks/main_stack.py | PENDING | cdk synth が成功すること |
-| 4 | 9 | CloudFront + ルーティング + OAC 定義 | infra/stacks/main_stack.py | PENDING | cdk synth が成功すること |
-| 4 | 10 | CloudFront Functions + KVS + SM同期定義 | infra/stacks/main_stack.py, infra/cf_auth.js | PENDING | cdk synth が成功すること |
+| 4 | 7 | CDK 骨格 + S3×2 定義 | infra/app.py, infra/stacks/main_stack.py | DONE | cdk synth が成功すること — Step 7-10まとめて1回のcdk synthで確認済み |
+| 4 | 8 | Lambda + Function URL 定義 | infra/stacks/main_stack.py | DONE | cdk synth が成功すること — 確認済み。AWS_REGIONがLambda予約済み環境変数で手動設定不可と判明し修正 |
+| 4 | 9 | CloudFront + ルーティング + OAC 定義 | infra/stacks/main_stack.py | DONE | cdk synth が成功すること — 確認済み |
+| 4 | 10 | CloudFront Functions + KVS + SM同期定義 | infra/stacks/main_stack.py, infra/cf_auth.js | DONE | cdk synth が成功すること — 確認済み。当初想定のAwsCustomResourceでは表現できずカスタムLambda+Providerに変更（詳細はspec_infra.md） |
 | 5 | 11 | deploy.yml 作成 | .github/workflows/deploy.yml | PENDING | YAML構文チェック通過 |
 | 5 | 12 | reingest.yml 作成 | .github/workflows/reingest.yml | PENDING | YAML構文チェック通過 |
 | 6 | 13 | 初回 cdk deploy 実行 | （インフラ作成） | BLOCKED（要人間承認D） | AWSリソース作成完了 |
