@@ -81,15 +81,6 @@ class MainStack(Stack):
                 "CHROMA_S3_BUCKET": chroma_bucket.bucket_name,
                 "CHROMA_S3_KEY": "chroma_db_latest.tar.gz",
                 "AWS_SECRETS_NAME": SECRETS_NAME,
-                # DockerfileのENV命令はビルド時のみ有効で実行時のLambda環境変数には
-                # 引き継がれないため、HF_HOMEをここで明示的に再設定する必要がある。
-                # 未設定だと実行時にsentence-transformersがビルド時焼き込み済みの
-                # /opt/hf_cacheを見つけられずHugging Face Hubへネットワーク問い合わせ
-                # してしまい、コールドスタート遅延の増大と一部リクエストの500エラー
-                # （否定結果キャッシュの書き込み失敗）の原因になっていた
-                # （incidents/2026-08-21_lambda-embedding-model-network-fallback.md）。
-                "HF_HOME": "/opt/hf_cache",
-                "HF_HUB_OFFLINE": "1",
                 # LOG_PATH・APP_API_KEYは意図的に設定しない
                 # （config.pyがNone判定でAWS構成の挙動＝標準出力ログ・Basic認証に切り替える）
             },

@@ -10,7 +10,9 @@
 
 「ハーネスエンジニアリング入門」講座PDF（harness_engineering_intro.pdf, 100ページ）を対象とした質問応答RAGシステムである。
 
-システムはPDFをセクション単位でチャンク化し、sentence-transformersでembeddingに変換してChromaDB（ローカル永続化）に格納する。ユーザーからの自然言語質問に対して、ベクトル類似度検索で関連チャンクを上位k件取得し、Amazon Bedrock経由でClaudeをLLMバックエンドとして回答を生成する。FastAPIサーバーとしてローカル起動し、ngrokトンネルでHTTPS公開する。
+システムはPDFをセクション単位でチャンク化し、Amazon Bedrock（Titan Text Embeddings V2）でembeddingに変換してChromaDB（ローカル永続化）に格納する。ユーザーからの自然言語質問に対して、ベクトル類似度検索で関連チャンクを上位k件取得し、Amazon Bedrock経由でClaudeをLLMバックエンドとして回答を生成する。FastAPIサーバーとしてローカル起動し、ngrokトンネルでHTTPS公開する。
+
+**embeddingモデルの変更について:** 元はローカル実行のsentence-transformers（多言語MiniLM）だったが、AWS構成のLambdaコールドスタート時にPyTorch/transformers一式のimportが重く、Lambda INIT phase（AWS固定10秒上限）超過や関数タイムアウトの原因になっていたため、Amazon Bedrock（Titan Text Embeddings V2）へ切り替えた（incidents/2026-08-21_lambda-embedding-model-network-fallback.md、incidents/2026-08-21_cold-start-timeout-embedding-migration.md）。
 
 **設計上の重要変更（req.md 変更履歴より）:**
 当初はローカルLLM（bonsai-8b-mlx）を想定していたが、開発機がIntel Mac（x86_64）のためMLXフレームワークが動作しない。LLMバックエンドはAnthropic Claude APIに変更した。さらにその後、Amazon BedrockのAPIキー（ベアラートークン方式）経由でClaudeを呼び出す構成に変更した（ユーザー確認済み。AWS IAMアクセスキー/シークレットは使用しない）。NFR-4の「差し替え可能な設計」に従い、LLMバックエンドはインターフェース分離で実装する。
@@ -69,7 +71,7 @@
 |---|---|
 | 400 | `question` フィールドが未指定または空文字 |
 | 403 | 認証失敗・未認証（CLAUDE.md 5.2: 401は使用しない） |
-| 500 | Anthropic Claude API呼び出し失敗、ChromaDB障害、その他内部エラー |
+| 500 | Amazon Bedrock（Claude・embedding）呼び出し失敗、ChromaDB障害、その他内部エラー |
 
 ---
 
@@ -133,7 +135,7 @@ PDFを分割した1チャンクが保持するフィールド定義を以下に�
 | section_number | string | 必須 | 空文字不可 | セクション識別子（例: "Section 0", "Section 1", "Capstone"） |
 | page_number | int | 必須 | 1以上 | PDFのページ番号 |
 | title | string | 必須 | 空文字不可 | スライドタイトル |
-| embedding | vector | 必須 | — | sentence-transformersが生成するベクトル [要確認] 次元数未指定 |
+| embedding | vector | 必須 | — | Amazon Bedrock（Titan Text Embeddings V2）が生成するベクトル。1024次元（`config.EMBEDDING_DIMENSIONS`、PENDING） |
 
 **備考:**
 - チャンク分割はセクション単位（Section 0〜7 および Capstone）で意味的に行う
@@ -160,8 +162,7 @@ PDFを分割した1チャンクが保持するフィールド定義を以下に�
    - 各チャンクにsection_number, page_number, titleを付与する
 
 4. Embedding生成
-   - sentence-transformersを使用してチャンクをベクトルに変換する
-   - [要確認] 使用するembeddingモデル名はreq.mdに未記載
+   - Amazon Bedrock（Titan Text Embeddings V2, `amazon.titan-embed-text-v2:0`）を使用してチャンクをベクトルに変換する（`config.EMBEDDING_MODEL`、PENDING。元はsentence-transformersだったがLambdaコールドスタート改善のため変更。incidents/参照）
 
 5. ベクトルDB格納
    - ChromaDBのコレクションにチャンクとembeddingを保存する
@@ -176,12 +177,15 @@ PDFを分割した1チャンクが保持するフィールド定義を以下に�
 
 ```
 1. クエリembedding生成
-   - ユーザーの質問文をsentence-transformersでベクトルに変換する
+   - ユーザーの質問文をAmazon Bedrock（Titan Text Embeddings V2）でベクトルに変換する
 
 2. 類似度検索
    - ChromaDBでコサイン類似度（または同等の距離関数）により検索する
    - [要確認] 距離関数の種類はreq.mdに未記載
-   - 上位k件を返す（デフォルト k=5。当初k=3だったが、evalスコア70%止まりだったためk=5に変更。CLAUDE.md 5.1参照）
+   - 上位k件を返す（デフォルト k=3。旧embedding(sentence-transformers)ではk=3だとevalスコア70%止まり
+     だったためk=5に変更していたが、Bedrock Titan Embeddings V2への切り替え後にk=3で再evalしたところ
+     90%（旧モデルのk=3実測70%を上回る）となり、コンテキスト最小化（CLAUDE.md 5.1）を優先してk=3に
+     戻した。ユーザー確認済み）
 
 3. 結果返却
    - 各チャンクのcontent, section_number, page_number, titleを含めて返す
@@ -238,9 +242,9 @@ req.mdに記載されたAC-1〜AC-5の全項目を「入力 | 操作 | 期待出
 
 | # | 入力 | 操作 | 期待出力 |
 |---|---|---|---|
-| AC-2-1 | question: "ハーネス設計の5本柱とは？" | retriever.pyで上位5件を検索する | 返された5件のうち少なくとも1件のsection_numberが "Section 1" であること |
-| AC-2-2 | question: "コンフォーマンス監査とは？" | retriever.pyで上位5件を検索する | 返された5件のうち少なくとも1件のsection_numberが "Section 6" であること |
-| AC-2-3 | question: "rippable harnessとは？" | retriever.pyで上位5件を検索する | 返された5件のうち少なくとも1件のsection_numberが "Section 7" であること |
+| AC-2-1 | question: "ハーネス設計の5本柱とは？" | retriever.pyで上位3件（`config.TOP_K`）を検索する | 返された3件のうち少なくとも1件のsection_numberが "Section 1" であること |
+| AC-2-2 | question: "コンフォーマンス監査とは？" | retriever.pyで上位3件（`config.TOP_K`）を検索する | 返された3件のうち少なくとも1件のsection_numberが "Section 6" であること |
+| AC-2-3 | question: "rippable harnessとは？" | retriever.pyで上位3件（`config.TOP_K`）を検索する | 返された3件のうち少なくとも1件のsection_numberが "Section 7" であること |
 
 ---
 
@@ -281,7 +285,7 @@ req.mdに記載されたAC-1〜AC-5の全項目を「入力 | 操作 | 期待出
 |---|---|---|
 | 実装言語 | Python | 3.11以上 |
 | PDF読み込み | PyMuPDF | — |
-| Embedding生成 | sentence-transformers | [要確認] モデル名未指定 |
+| Embedding生成 | Amazon Bedrock（Titan Text Embeddings V2） | モデルID: `amazon.titan-embed-text-v2:0`（`config.EMBEDDING_MODEL`、PENDING）。1024次元。ベアラートークン方式のBedrock APIキー認証（LLMバックエンドと共通）。元はsentence-transformers（incidents/参照） |
 | ベクトルストア | ChromaDB | 永続化パス: data/chroma_db/ |
 | LLMバックエンド | Amazon Bedrock経由のClaude Sonnet 4.6 | anthropic SDKの `AnthropicBedrock`（ベアラートークン方式のBedrock APIキー認証）。モデルID: `jp.anthropic.claude-sonnet-4-6`（東京リージョン、確定値）。[要確認] 実機疎通は未検証 |
 | APIサーバー | FastAPI + Uvicorn | — |
@@ -298,7 +302,7 @@ req.mdに記載されたAC-1〜AC-5の全項目を「入力 | 操作 | 期待出
 
 | 項目 | 要件値 |
 |---|---|
-| 回答生成レイテンシ（POST /ask） | 60秒以内（外部API呼び出しのネットワーク遅延を含む） |
+| 回答生成レイテンシ（POST /ask） | 60秒以内（外部API呼び出しのネットワーク遅延を含む、リクエスト全体のSLA）。内訳としてBedrock呼び出し自体のタイムアウトは45秒（ベクトル検索・Lambdaオーバーヘッド分の余白を確保するため。CLAUDE.md 5.3章参照） |
 
 ### 6.4 セキュリティ要件
 
@@ -315,7 +319,7 @@ req.mdに記載されたAC-1〜AC-5の全項目を「入力 | 操作 | 期待出
 ### 6.6 差し替え可能性要件（NFR-4）
 
 以下のコンポーネントはインターフェース分離により、実装を差し替え可能にする:
-- LLMバックエンド: Anthropic Claude API以外に切り替え可能
+- LLMバックエンド: 現在の実装（Amazon Bedrock経由のClaude）以外に切り替え可能
 - ベクトルDB: ChromaDB以外に切り替え可能
 - トンネルツール: ngrok以外に切り替え可能
 
@@ -373,7 +377,7 @@ ngrok公開前に以下の全条件を満たすこと:
 | 12 | 1 システム概要 / 6.1 技術スタック | LLMバックエンドの呼び出し経路 | Amazon Bedrock経由（`AnthropicBedrock`、ベアラートークン方式のBedrock APIキー認証。AWS IAMアクセスキー/シークレットは不使用） |
 | 13 | 6.1 技術スタック | AWSリージョン | 東京リージョン（`ap-northeast-1`） |
 | 14 | 4.3 生成フロー / 6.1 技術スタック | 使用モデル | claude-sonnet-4.6（Bedrock表記: `jp.anthropic.claude-sonnet-4-6`） |
-| 15 | 4.2 検索フロー / AC-2 | 検索上位k件（TOP_K） | 5件（当初3件だったが、eval実行でSection 5・Capstoneの正解チャンクが上位3件に入らずスコア70%だったため5に変更） |
+| 15 | 4.2 検索フロー / AC-2 | 検索上位k件（TOP_K） | 3件（当初3件→eval実行でSection 5・Capstoneの正解チャンクが上位3件に入らずスコア70%だったため5件に変更→Bedrock Titan Embeddings V2への切り替え後にk=3で再eval 90%達成のため3件に戻した。2026-08-21、ユーザー確認済み） |
 
 ### 未解決（CLAUDE.md 5.2 PENDING区分。config.py実装時に既定値をコメント付きで記録し、実装はブロックしない）
 

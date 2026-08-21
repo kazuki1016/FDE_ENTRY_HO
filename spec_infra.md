@@ -59,10 +59,10 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 | EFS マウント + VPC + NAT Gateway | 却下 | NAT Gateway等の固定費が$30/月超となる |
 | API Gateway（HTTP API） | 却下 | 統合タイムアウトの上限が30秒（REST APIでも既定29秒、引き上げにはAWSサポート申請が必要）であり、NFR-1の60秒タイムアウト要件と矛盾するため。Bedrock呼び出し＋コールドスタートが30秒を超えると、Lambda側の設定に関わらずAPI Gatewayが504を返してしまう |
 | Lambda Function URL | 採用 | Lambda本体のタイムアウト（最大15分）をそのまま使え、API Gateway分の追加コストも発生しない。CloudFrontのオリジンとしても同様に利用可能 |
-| S3イベント通知→Lambdaで完全自動ingest（PDFアップロードをトリガーに即時反映） | 却下 | PDFはほぼ固定という前提（ユーザー確認済み）に対してオーバースペック。ingest用Lambda（PyMuPDF・sentence-transformers同梱）の別途パッケージングも必要になり複雑化する |
+| S3イベント通知→Lambdaで完全自動ingest（PDFアップロードをトリガーに即時反映） | 却下 | PDFはほぼ固定という前提（ユーザー確認済み）に対してオーバースペック。ingest用Lambda（PyMuPDF・sentence-transformers同梱）の別途パッケージングも必要になり複雑化する（※2026-08-21時点、embeddingはBedrockに変更済み。incidents/参照。この判断自体の妥当性には影響しない） |
 | GitHub Actions（workflow_dispatch）による半自動ingest | 採用 | 人間の作業は「新PDFをS3にアップロードする」ことのみに縮小でき、以降のingest・アーカイブ化・配置は自動化される。トリガーは人間の意思による手動実行を維持しつつ、ローカル環境操作は不要にできる |
-| Lambda ZIP/レイヤーで依存ライブラリを配布 | 却下（`@metsukeyaku`指摘により訂正） | `torch`（700MB超）+ `sentence-transformers` + `transformers` の合計サイズがLambda ZIP/レイヤーの上限（250MB非圧縮）を大幅に超過し、物理的にデプロイ不可能なため |
-| Lambda Container Image（ECR） | 採用（`@metsukeyaku`指摘により訂正） | 最大10GBまで許容されるため既存の依存関係をそのまま利用できる。`retriever.py`・`ingest.py`のembedding実装（PyTorchベースのsentence-transformers）を変更せずに済み、ngrok構成とAWS構成でeval結果の同等性を保てる（Simplicity First: 既存の検証済みコードを変更しない） |
+| Lambda ZIP/レイヤーで依存ライブラリを配布 | 却下（`@metsukeyaku`指摘により訂正） | `torch`（700MB超）+ `sentence-transformers` + `transformers` の合計サイズがLambda ZIP/レイヤーの上限（250MB非圧縮）を大幅に超過し、物理的にデプロイ不可能なため（※2026-08-21時点、これらのパッケージはrequirements.txtから削除済み。ただしchromadb経由の依存（onnxruntime等）も250MBを超える可能性が高く、Container Image採用の結論自体は変わらない） |
+| Lambda Container Image（ECR） | 採用（`@metsukeyaku`指摘により訂正） | 最大10GBまで許容されるため既存の依存関係をそのまま利用できる。`retriever.py`・`ingest.py`のembedding実装（PyTorchベースのsentence-transformers）を変更せずに済み、ngrok構成とAWS構成でeval結果の同等性を保てる（Simplicity First: 既存の検証済みコードを変更しない）（※2026-08-21時点、embeddingはPyTorchベースのsentence-transformersからAmazon Bedrock（Titan Text Embeddings V2）へ変更した。Lambdaコールドスタート時のPyTorch/transformers importが重く、INIT phase(10秒上限)超過や関数タイムアウトの原因になっていたため。incidents/参照。Container Image採用自体の結論は変わらない） |
 
 **トレードオフ（明示）:**
 - コールドスタート時にレイテンシが発生する（`@metsukeyaku`再レビュー指摘C-NEW-1により訂正: Container Image化に伴い当初想定の「数秒」ではなく30〜60秒程度になるリスクがある。詳細は8.3章）。これは許容済み。
@@ -131,9 +131,9 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 |---|---|
 | ランタイム | **Python 3.12**（コンテナイメージ内。実装時の発見により訂正: `public.ecr.aws/lambda/python:3.11`はAmazon Linux 2ベースでEOL済み（サポート終了2026-06-30）、glibcが古くonnxruntime・pymupdf・numpy等のプリビルドwheelと非互換で、Dockerビルドが失敗した。`3.12`はAmazon Linux 2023ベース（サポート終了2029-06-30）でこの問題が解消する。ユーザー確認済み） |
 | エントリーポイント | Mangumアダプタでラップした FastAPI アプリ（Lambda Function URLのイベント形式に対応） |
-| 依存ライブラリのパッケージング（**`@metsukeyaku`指摘 R-1 により訂正**） | **確定**: Lambda Container Image（Amazon ECR）を使用する。`requirements.txt` には `torch==2.2.2`（700MB超）・`sentence-transformers`・`transformers` が含まれ、合計サイズがLambda ZIP/レイヤーの上限（250MB非圧縮）を大幅に超過し物理的にデプロイ不可能なため。Container Imageは最大10GBまで許容され、既存の依存関係・embedding実装（`retriever.py`・`ingest.py`）を変更せずに済む（1章の却下案参照） |
+| 依存ライブラリのパッケージング（**`@metsukeyaku`指摘 R-1 により訂正**） | **確定**: Lambda Container Image（Amazon ECR）を使用する。当初`requirements.txt`には`torch==2.2.2`（700MB超）・`sentence-transformers`・`transformers`が含まれ合計サイズがLambda ZIP/レイヤーの上限（250MB非圧縮）を大幅に超過していたため（1章の却下案参照）。2026-08-21時点、これら3パッケージは削除済み（embeddingをAmazon Bedrockへ変更したため。incidents/参照）だが、chromadb等の残存依存だけでも250MBを超える可能性が高くContainer Image採用の結論は変わらない |
 | `/tmp` の用途 | ChromaDBのローカルキャッシュ（`/tmp/chroma_db`）を展開する。容量上限はLambda仕様による（通常512MB〜10GB） |
-| [推奨デフォルト値（PENDING）、`@metsukeyaku`指摘 C-5 により見直し] メモリサイズ | **3008MB**（旧案の1024MBはPyTorch+sentence-transformersのモデルロードに不足する可能性が高いと指摘されたため引き上げ）。Lambdaはメモリ量に比例してCPU割当も増えるため、コールドスタート短縮にも寄与する。実装後に実測して調整すること |
+| [推奨デフォルト値（PENDING）、`@metsukeyaku`指摘 C-5 により見直し] メモリサイズ | **3008MB**（旧案の1024MBはPyTorch+sentence-transformersのモデルロードに不足する可能性が高いと指摘されたため引き上げ）。Lambdaはメモリ量に比例してCPU割当も増えるため、コールドスタート短縮にも寄与する。実装後に実測して調整すること（※2026-08-21時点、PyTorch+sentence-transformersのモデルロードはBedrock化により不要になったため、この値の妥当性は未再検証。実測の上で引き下げを検討してよい） |
 | タイムアウト設定 | **確定**: 90秒。Lambda Function URL採用によりAPI Gatewayの30秒キャップが解消されたため、NFR-1の60秒に加えてS3ダウンロード・展開等のコールドスタート分の余裕を持たせる |
 | 環境変数・シークレットの管理 | **確定**: AWS Secrets Manager で管理する（ユーザー指定）。Basic認証のユーザー名・パスワード、Bedrock APIキー（`AWS_BEARER_TOKEN_BEDROCK`）を格納する。Lambdaランタイムはコールドスタート時に一度Secrets Managerから取得し、実行環境のメモリ上にキャッシュする（ウォーム呼び出しのたびに再取得しない。Secrets Manager APIコール数とレイテンシを抑えるため）。`AWS_REGION`は**Lambdaランタイムが自動設定する予約済み環境変数**（実装時に発覚: CDKで手動設定しようとすると`ReservedEnvironmentVariable`エラーになる）であり、明示的な設定は不要・不可。`config.py`の`os.getenv("AWS_REGION", ...)`はLambda組み込みの値をそのまま読む |
 | VPC接続 | **確定**: 不要。ChromaDBはS3経由でローカルキャッシュ化するため、VPC・EFSは使用しない |
@@ -160,12 +160,12 @@ CLAUDE.md 5.4は「ベクトルDBの永続化パスは `data/chroma_db/` に固�
 | リポジトリ | プロジェクト用ECRリポジトリを1つ新規作成（CDKの `DockerImageFunction` / `DockerImageAsset` 経由で自動作成・push可能） |
 | イメージのビルド | `cdk deploy` 実行時にDockerビルドが自動実行される（CDK標準機能）。CI環境（GitHub Actions）にもDockerビルド環境が必要（9.2章参照） |
 | ベースイメージ | **確定**: `public.ecr.aws/lambda/python:3.12`（Amazon Linux 2023ベース）。Python 3.11イメージ（Amazon Linux 2ベース、EOL済み）はglibcの古さが原因で複数パッケージのビルドに失敗したため実装時に変更した（127行目参照）。マルチステージビルドは不要と判明（pymupdf/pyngrokをイメージから除外することで単純な`pip install`で完結する。requirements.txt除外の詳細は`Dockerfile`参照） |
-| 依存関係（`@metsukeyaku`再レビュー指摘L-1により追記） | **確定**: `requirements.txt`に`mangum`パッケージを追加する（現状未記載）。Dockerfileでは`requirements.txt`をそのままインストールする |
-| torchのビルド（実装時の発見により追記） | **確定**: `torch`はデフォルトでCUDA同梱版がインストールされ`nvidia-*`パッケージ込みで4GB超になり、Lambdaの10GB上限を圧迫する（実装時に10.1GBで超過を確認）。`--index-url https://download.pytorch.org/whl/cpu`でCPU専用ビルドを明示的にインストールする（LambdaはCPUのみでnvidiaパッケージは不要）。この対応でイメージサイズは3.82GBまで縮小した |
+| 依存関係（`@metsukeyaku`再レビュー指摘L-1により追記） | **確定**: `requirements.txt`に`mangum`パッケージを追加する（追加済み、`requirements.txt`参照）。Dockerfileでは`requirements.txt`をそのままインストールする |
+| torchのビルド（実装時の発見により追記） | **廃止（2026-08-21）**: embeddingをAmazon Bedrockへ変更したことに伴い`torch`自体をrequirements.txtから削除したため不要になった。経緯はincidents/2026-08-21_cold-start-timeout-embedding-migration.md参照 |
 | requirements.txtからの除外（実装時の発見により追記） | **確定**: `pymupdf`（PDF取り込み専用。Cコンパイラなしではソースビルド不可）・`pyngrok`（ngrok構成専用）はLambda実行時に不要なため、Dockerfile内で`grep -v`により除外してインストールする。`ingest.py`の`import fitz`は`extract_chunks`関数内への遅延importに変更済み（Lambda実行パスでは呼ばれないため） |
 | `.dockerignore`（実装時の発見により追記） | **確定**: プロジェクトルートに`.dockerignore`が必要。CDKの`DockerImageCode.from_image_asset()`はビルドコンテキストとしてプロジェクトルート全体をコピーするため、これがないと`.venv/`（数GB）や`infra/cdk.out/`自身（再帰的に自己参照し無限増殖する）まで含めてコピーしようとし、ディスクを圧迫して`ENOSPC`でビルドが失敗する（実装時に実際に発生し、ホストディスクの空き容量が557MBまで逼迫した）。`.venv/`・`.git/`・`data/`・`logs/`・`tests/`・`infra/cdk.out/`・`*.pdf`等を除外する |
-| embeddingモデルの重み（`@metsukeyaku`再レビュー指摘L-2・E-NEW-1により追記） | **確定**: `SentenceTransformer`のモデル重みはビルド時にContainer Imageへ事前同梱する（実行時のHugging Faceからのダウンロードはコールドスタートを不安定・長時間化させるため行わない）。DockerfileのビルドステップでHugging Faceからモデルをダウンロードしイメージ内にキャッシュする |
-| `HF_HOME`の固定（実装時にAC-INFRA-2-3の検証で発覚） | **確定**: Dockerfileで`ENV HF_HOME=/opt/hf_cache`をモデルダウンロード前に設定する。未設定だとビルド時（rootユーザー、`HOME=/root`）のキャッシュ先と実行時（Lambdaの非rootユーザー、`HOME=/home/sbx_user1051`、読み取り専用）のキャッシュ探索先が一致せず、実行時にモデルキャッシュが見つからずHugging Faceへの再ダウンロードを試みて`/ask`が500エラーになる（`Errno 30 Read-only file system`） |
+| embeddingモデルの重み（`@metsukeyaku`再レビュー指摘L-2・E-NEW-1により追記） | **廃止（2026-08-21）**: embeddingをローカル実行の`SentenceTransformer`からAmazon Bedrock（Titan Text Embeddings V2）へ変更したため不要になった。経緯はincidents/2026-08-21_lambda-embedding-model-network-fallback.md参照 |
+| `HF_HOME`の固定（実装時にAC-INFRA-2-3の検証で発覚） | **廃止（2026-08-21）**: 上記と同じ理由で不要になった。経緯はincidents/2026-08-21_lambda-embedding-model-network-fallback.md・incidents/2026-08-21_cold-start-timeout-embedding-migration.md参照 |
 | ライフサイクルポリシー | [推奨デフォルト値（PENDING）] 古いイメージの自動削除（例: 直近5世代のみ保持）を設定し、ECRのストレージ費用を抑える |
 
 ---
@@ -277,7 +277,7 @@ ngrok構成とAWS構成は `server.py`・`config.py`・`templates/index.html` �
 | `config.py`（21行目・25行目、`@metsukeyaku`再レビュー指摘C-3RD-2により取得方式を明確化） | `API_KEY = os.environ["APP_API_KEY"]`（21行目）に加え、`AWS_BEARER_TOKEN_BEDROCK = os.environ["AWS_BEARER_TOKEN_BEDROCK"]`（25行目）もモジュール読み込み時に即評価される。AWS構成でSecrets Managerから値を取得する場合、素朴な`boto3`呼び出しをモジュールレベルに置くと同じ`KeyError`/初期化順序問題（C-NEW-2と同種）が再発する | **確定方針**: Lambda Extension等の新規コンポーネントは追加せず、C-NEW-2で導入する遅延初期化パターンを`config.py`の全Secrets Manager由来の値（`AWS_BEARER_TOKEN_BEDROCK`・`BASIC_AUTH_USERNAME`・`BASIC_AUTH_PASSWORD`）に統一適用する。具体的には、これらをモジュールレベルの`os.environ[...]`直接参照ではなく、単一の遅延ロード関数（例: `get_secrets()`、`@lru_cache`でキャッシュ）内でboto3の`secretsmanager.get_secret_value`を呼び出して取得する形に変更する。初回アクセス時（Lambdaハンドラー実行後）に1度だけ呼ばれ、以降のウォーム呼び出しはキャッシュを再利用する（2.4章の「コールドスタート時に一度取得」という既存方針と整合）。`APP_API_KEY`は引き続き`os.environ.get("APP_API_KEY")`（ngrok構成でのみ値が設定される、Secrets Manager経由ではない通常の環境変数）のままでよい |
 | `server.py`（認証ロジック） | 現状は`X-API-Key`ヘッダー検証のみ実装済み。Basic認証の検証ロジックが存在しない | 新規にBasic認証用の依存関数を追加する。`config.API_KEY`が設定されていればAPIキー方式、`config.BASIC_AUTH_USERNAME`等が設定されていればBasic認証方式で検証する、環境に応じた分岐とする（剥がせる設計の考え方を踏襲）。**境界条件（`@metsukeyaku`再レビュー指摘C-NEW-3により追記、確定方針）**: 両方設定されている状態は運用上想定しない（ngrok構成では`APP_API_KEY`のみ、AWS構成ではBasic認証用変数のみをそれぞれ設定する）。どちらも未設定の場合は**フェイルクローズ（全リクエストを403で拒否）**とし、認証なしでの通過を絶対に許可しない（CLAUDE.md 6章「認証バイパスの脆弱性ゼロ」品質ゲートに直結するため） |
 | `server.py`（127行目）・`templates/index.html` | GET `/` ルートは`index.html`配信時に`__API_KEY_JSON__`を実際のAPIキーへ動的置換している。AWS構成ではS3が`index.html`を直接静的配信するため、このFastAPIルート自体が経由されず置換が発生しない（R-2） | **確定方針**: AWS構成ではBasic認証をCloudFront層・FastAPI層とも同一の認証情報で運用する。ブラウザはCloudFront層への初回認証成功後、同一オリジンへの以降のリクエスト（`index.html`のJSが発行する`/ask`へのfetch呼び出しを含む）に`Authorization: Basic ...`ヘッダーを自動付与するため、JS側でAPIキーを保持・送信する仕組みは不要になる。既存の`X-API-Key`送信コードはAWS構成では単に無視される無害な残存コードとなるが、置換前の`__API_KEY_JSON__`という文字列がそのまま静的ファイルに残るのを避けるため、S3へのアップロード時（CDKデプロイ処理の一部、またはCIのビルドステップ）に`__API_KEY_JSON__`を`null`へ一括置換してからアップロードする。`templates/index.html`のソースファイル自体は変更しない |
-| `server.py`（25行目、ChromaDB初期化） | `@metsukeyaku`再レビュー指摘C-NEW-2: `_store = ChromaVectorStore(config.CHROMA_DB_PATH)`はモジュール読み込み時（インポート時）に即実行される。`ChromaVectorStore.__init__`は`chromadb.PersistentClient(path=...)`を呼び出すため、3.3章のLambda起動時フロー（S3からのダウンロード・展開）より**先に**空のChromaDBが`/tmp/chroma_db`に作成されてしまい、検索結果が常に0件になる致命的な不整合が生じる | **確定方針**: モジュールレベルの即時初期化をやめ、遅延初期化に変更する（`retriever.py`が`SentenceTransformer`ロードに`@lru_cache`を使っている既存パターンに倣う）。具体的には`_store`をファクトリ関数（`get_store()`、`@lru_cache`または同等のシングルトン管理）に置き換えるか、FastAPIの`lifespan`イベントで初期化する。これにより、Lambdaハンドラーが3.3章のS3ダウンロード・展開処理を完了させた後に初めてChromaDBクライアントが初期化されるようにする。ngrok構成では起動時に`data/chroma_db/`が既に存在するため、遅延初期化に変更しても動作に影響しない |
+| `server.py`（25行目、ChromaDB初期化） | `@metsukeyaku`再レビュー指摘C-NEW-2: `_store = ChromaVectorStore(config.CHROMA_DB_PATH)`はモジュール読み込み時（インポート時）に即実行される。`ChromaVectorStore.__init__`は`chromadb.PersistentClient(path=...)`を呼び出すため、3.3章のLambda起動時フロー（S3からのダウンロード・展開）より**先に**空のChromaDBが`/tmp/chroma_db`に作成されてしまい、検索結果が常に0件になる致命的な不整合が生じる | **確定方針**: モジュールレベルの即時初期化をやめ、遅延初期化に変更する（`server.py`の`get_store()`が`@lru_cache`でシングルトン管理する既存パターンに倣う）。具体的には`_store`をファクトリ関数（`get_store()`、`@lru_cache`または同等のシングルトン管理）に置き換えるか、FastAPIの`lifespan`イベントで初期化する。これにより、Lambdaハンドラーが3.3章のS3ダウンロード・展開処理を完了させた後に初めてChromaDBクライアントが初期化されるようにする。ngrok構成では起動時に`data/chroma_db/`が既に存在するため、遅延初期化に変更しても動作に影響しない |
 | `server.py`（`_log_request`関数）・`config.py`（`LOG_PATH`）（`@metsukeyaku`再レビュー指摘C-3RD-1により追加） | `_log_request`は`config.LOG_PATH`（既定`logs/requests.jsonl`）へのファイル書き込みを行う。Lambda Container Imageのファイルシステムは`/tmp`以外読み取り専用のため、この相対パスへの書き込みは`PermissionError`で失敗する。8.5章では「stdout経由でCloudWatch Logsに自動収集」と出力方式の意図は既に記載済みだが、本表（実装変更カタログ）への記載が漏れていた | **確定方針**: `_log_request`の出力先を環境に応じて分岐する。`config.LOG_PATH`が設定されていれば従来通りファイル書き込み（ngrok構成）、未設定またはAWS構成判定時は`print(json.dumps(...))`で標準出力に書き出す（AWS構成、Lambdaの標準機能でCloudWatch Logsに自動収集される。8.5章参照）。ngrok構成の既存動作に影響しない |
 
 ---
@@ -347,7 +347,7 @@ spec.mdで定義されている `AnthropicBedrock` クライアント（ベア�
 
     7. ベクトル検索（ChromaDB、/tmp/chroma_db 参照）
        - 質問文をembeddingに変換する
-       - 上位k件（デフォルト k=5）を取得する
+       - 上位k件（デフォルト k=3、`config.TOP_K`）を取得する
 
     8. Amazon Bedrock経由でClaudeが回答を生成する（spec.mdの構成を変更なしで継承）
 
@@ -515,7 +515,7 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 | トリガー | `workflow_dispatch`（GitHub Actions画面からの手動起動） |
 | 実行内容 | 3.2章参照。S3からPDFダウンロード → ingest.py実行 → アーカイブ化 → S3アップロード |
 | AWS認証 | ワークフロー1と同様、OIDC連携のIAMロールを使用 |
-| 依存ライブラリのインストール（`@metsukeyaku`指摘 E-3） | `ingest.py`の実行にはPyTorch・sentence-transformers等が必要で、GitHub Actionsランナー上でのインストール・モデルダウンロードに数分かかる。頻度が低い（PDF差し替え時のみ）ため許容するが、`actions/cache`でpipキャッシュを効かせて2回目以降を高速化することを推奨する |
+| 依存ライブラリのインストール（`@metsukeyaku`指摘 E-3） | **2026-08-21更新**: embeddingをAmazon Bedrockへ変更したため、`ingest.py`の実行にPyTorch・sentence-transformers等の重い依存もモデルダウンロードも不要になった（`boto3`経由でBedrock APIを呼び出すのみ。incidents/参照）。依存インストール自体は引き続き発生するため、`actions/cache`でのpipキャッシュ活用は変更なく有効 |
 | [要確認] ワークフローファイル名・配置 | `.github/workflows/reingest.yml`を想定 |
 
 ### 9.4 IAMロール（OIDC用）の権限
@@ -523,7 +523,7 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 デプロイ用ロールとreingest用ロールは、8.2章の最小権限方針に加えて以下が必要:
 
 - デプロイ用ロール: CDKが操作する各サービス（CloudFront・S3・Lambda・IAM・Secrets Manager等）へのデプロイ権限。CDKの `cdk bootstrap` が生成するデプロイ用ロールの利用を基本とする
-- reingest用ロール: S3（source PDF読み取り、ChromaDBアーカイブ書き込み）への限定権限のみ
+- reingest用ロール: S3（source PDF読み取り、ChromaDBアーカイブ書き込み）に加え、`bedrock:InvokeModel`（embedding生成用。2026-08-21のBedrock移行に伴い追加。対象モデル: `amazon.titan-embed-text-v2:0`のARNに限定）への限定権限。**対応済み（2026-08-21）**: `GitHubActionsReingestRole`にインラインポリシー`BedrockEmbedInvoke`を追加し付与済み（incidents/2026-08-21_cold-start-timeout-embedding-migration.md参照）
 
 **確定（ユーザー確認済み。デプロイ成功により実機検証済み）**: 信頼関係（trust policy）の`sub`条件は、GitHubのimmutable ID形式（`repo:{owner}@{owner_id}/{repo}@{repo_id}:*`）を使用する。従来形式（`repo:{owner}/{repo}:*`）ではAssumeRoleWithWebIdentityが`Not authorized`で拒否されることが実機で判明したため、以下の形式に統一する:
 

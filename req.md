@@ -11,7 +11,10 @@
 > その後、Amazon Bedrock（Bedrock APIキー、東京リージョン、claude-sonnet-4.6）経由での呼び出しに変更した。
 >
 > **変更履歴（eval実行結果より）**: 検索結果の上位k件（当初k=3）ではSection 5・Capstoneの正解チャンクが
-> 上位に入らずeval スコアが70%（10問中7問）にとどまったため、k=5に変更した。
+> 上位に入らずeval スコアが70%（10問中7問）にとどまったため、k=5に変更した。その後、embeddingを
+> sentence-transformersからAmazon Bedrock（Titan Text Embeddings V2）へ変更した際にk=3で再evalしたところ
+> 90%（旧embeddingのk=3実測70%を上回る）となったため、コンテキスト最小化を優先しk=3に戻した
+> （2026-08-21、ユーザー確認済み。incidents/2026-08-21_cold-start-timeout-embedding-migration.md参照）。
 > また「ステージゲート方式」という語はPDF本文に存在しないことが判明した（実在するのは Section 6 の
 > 「品質ゲート」）。そのため下記eval入力セット表の#5は「品質ゲートとは？」（期待セクション: Section 6）
 > に差し替えた（evals/eval_set.json 側で修正。表は当初案から更新済み）。
@@ -31,11 +34,11 @@
 
 ### FR-2: ベクトル検索
 - チャンクをembeddingに変換し、ベクトルDBに格納する
-- ユーザーの質問文に対して、関連度の高い上位k件（デフォルト5件。当初3件だったがeval結果を受けて変更。変更履歴参照）を返す
+- ユーザーの質問文に対して、関連度の高い上位k件（デフォルト3件。3→5→3と変更を経ている。変更履歴参照）を返す
 - 検索結果にソースのページ番号・セクション番号を含める
 
 ### FR-3: 回答生成
-- Anthropic Claude API を使い、検索結果をコンテキストとして回答を生成する
+- Amazon Bedrock経由のClaude API を使い、検索結果をコンテキストとして回答を生成する
 - 回答には参照元のページ番号を付記する
 - コンテキスト外の知識で回答しない（ハルシネーション防止）
 - 「わかりません」と答える能力を持つ
@@ -52,7 +55,7 @@
 ## 非機能要件
 
 ### NFR-1: レスポンス
-- 回答生成は60秒以内に完了する（外部API呼び出しのネットワーク遅延を考慮）
+- 回答生成は60秒以内に完了する（外部API呼び出しのネットワーク遅延を考慮）。実装上、Bedrock呼び出し自体のタイムアウトは45秒に設定する（ベクトル検索・Lambdaオーバーヘッド分の余白を確保するため。60秒はリクエスト全体のSLA、45秒はその内訳の一部。CLAUDE.md 5.3章参照）
 
 ### NFR-2: セキュリティ
 - ngrok公開時、APIキーまたはBasic認証でアクセスを制限する
@@ -74,9 +77,9 @@
 - [ ] 各チャンクにsection_number, page_number, titleのメタデータがある
 
 ### AC-2: 検索精度
-- [ ] 「ハーネス設計の5本柱とは？」→ Section 1 のチャンクが上位5件に含まれる
-- [ ] 「コンフォーマンス監査とは？」→ Section 6 のチャンクが上位5件に含まれる
-- [ ] 「rippable harnessとは？」→ Section 7 のチャンクが上位5件に含まれる
+- [ ] 「ハーネス設計の5本柱とは？」→ Section 1 のチャンクが上位3件に含まれる
+- [ ] 「コンフォーマンス監査とは？」→ Section 6 のチャンクが上位3件に含まれる
+- [ ] 「rippable harnessとは？」→ Section 7 のチャンクが上位3件に含まれる
 
 ### AC-3: 回答品質
 - [ ] 回答に参照ページ番号が含まれる
@@ -120,8 +123,8 @@
 ## 技術スタック
 
 - Python 3.11+
-- Anthropic Claude API（回答生成、anthropic SDK経由）
-- sentence-transformers（embedding生成）
+- Amazon Bedrock経由のClaude API（回答生成、anthropic SDK経由）
+- Amazon Bedrock Titan Text Embeddings V2（embedding生成。元はsentence-transformersだったが、AWS Lambdaのコールドスタート改善のため変更。incidents/参照）
 - ChromaDB（ベクトルストア）
 - PyMuPDF（PDF読み込み）
 - FastAPI + Uvicorn（APIサーバー）

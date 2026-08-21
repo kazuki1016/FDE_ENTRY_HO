@@ -39,7 +39,12 @@ jobs:
       - name: Build ChromaDB for tests
         # CIランナーはdata/chroma_db/を持たない（.gitignore対象）ため、
         # リポジトリに同梱済みのPDF（harness_engineering_intro.pdf）から都度生成する。
+        # ingest.pyのembed_text()がBedrock（Titan Text Embeddings V2）を呼ぶため、
+        # Run testsステップと同じBedrock認証用の環境変数が必要（metsukeyakuレビューで発覚）。
         run: PYTHONPATH=src python -m ingest
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
 
       - name: Run tests
         run: pytest tests/

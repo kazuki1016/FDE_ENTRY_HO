@@ -5,8 +5,9 @@
 # それ以降（ダウンロード・ingest・アーカイブ化・配置）はすべて自動化する。
 #
 # 事前設定が必要（人間承認Bで作成したリソースに合わせてリポジトリ設定で登録すること）:
-#   Variables: AWS_REINGEST_ROLE_ARN（OIDC用IAMロールARN。S3 GetObject/PutObjectのみの
-#              限定権限。spec_infra.md 9.4章）
+#   Variables: AWS_REINGEST_ROLE_ARN（OIDC用IAMロールARN。S3 GetObject/PutObjectに加え、
+#              2026-08-21のBedrock移行によりbedrock:InvokeModel（embedding生成用、
+#              amazon.titan-embed-text-v2:0のARNに限定）も付与済み。spec_infra.md 9.4章）
 #              AWS_REGION
 #              CHROMA_S3_BUCKET（ChromaDB永続化用バケット名。source PDFも同バケット内の
 #              別キーに置く。spec_infra.md 2.5章・付記#1）
@@ -38,8 +39,9 @@ jobs:
 
       - name: Install dependencies
         # actions/cache(setup-pythonのcache設定)によりpipキャッシュを効かせ、
-        # 2回目以降のPyTorch等の重い依存関係インストールを高速化する
-        # （spec_infra.md 9.3章 E-3）。
+        # 2回目以降の依存関係インストールを高速化する（spec_infra.md 9.3章 E-3。
+        # 2026-08-21のBedrock移行によりPyTorch等の重い依存は不要になったが、
+        # pipキャッシュ活用自体は引き続き有効）。
         run: pip install -r requirements.txt
 
       - name: Download source PDF from S3

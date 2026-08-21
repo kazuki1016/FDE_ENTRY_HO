@@ -26,7 +26,10 @@ load_dotenv()
 PDF_PATH = os.getenv("PDF_PATH", "harness_engineering_intro.pdf")
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "data/chroma_db")
 LOG_PATH = os.getenv("LOG_PATH")  # 未設定時はAWS構成とみなし標準出力に切り替える（server.py _log_request参照）
-TOP_K = 5  # eval実行時、k=3ではSection5/Capstoneの正解ページが上位に入らずスコア70%だったため5に変更（ユーザー確認済み）
+TOP_K = 3  # 元は旧embedding(sentence-transformers)でk=3だとSection5/Capstoneが上位に入らずスコア70%
+# だったため5に変更していたが、Bedrock Titan Embeddings V2への切り替え後にk=3で再evalしたところ
+# 90%（旧モデルのk=3実測70%を上回る）となり、コンテキスト最小化（CLAUDE.md 5.1）を優先して
+# 3に戻した（ユーザー確認済み）
 TIMEOUT_SEC = 45  # 元は60。CloudFrontのLambda Function URLオリジンread_timeoutも60秒で、
 # ベクトル検索・Lambdaオーバーヘッド分の余白がなくCloudFront側のタイムアウトが先に発生し
 # HTMLエラーページが返る不具合が本番で発生したため、余白を確保する値に短縮した（ユーザー確認済み）
@@ -68,7 +71,12 @@ def __getattr__(name: str):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # ── PENDING（ユーザー未確認。デフォルト値を使用中） ──
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")  # [PENDING] ユーザー未確認。日本語コンテンツのため多言語モデルをデフォルトとして使用中
+# 元はローカル実行のsentence-transformers（多言語MiniLM）だったが、Lambdaコールドスタート時に
+# torch/transformers一式のimportが重く、INIT phase(AWS固定10秒上限)超過や関数タイムアウトの
+# 原因になっていたため、Amazon Bedrock（Titan Text Embeddings V2）へ切り替えた
+# （incidents/2026-08-21_lambda-embedding-model-network-fallback.md）。
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "amazon.titan-embed-text-v2:0")  # [PENDING] ユーザー未確認。デフォルト値を使用中
+EMBEDDING_DIMENSIONS = int(os.getenv("EMBEDDING_DIMENSIONS", "1024"))  # [PENDING] Titan Text Embeddings V2の最大次元数をデフォルトとして使用中
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))  # [PENDING] ユーザー未確認。デフォルト値を使用中
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))  # [PENDING] ユーザー未確認。デフォルト値を使用中
 DISTANCE_FUNCTION = os.getenv("DISTANCE_FUNCTION", "cosine")  # [PENDING] ユーザー未確認。デフォルト値を使用中

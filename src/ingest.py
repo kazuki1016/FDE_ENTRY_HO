@@ -5,11 +5,14 @@
 「SECTION N — まとめ」まとめページ、「Capstone」表記）をページ単位で走査する
 方式で実装する。
 """
+import json
+import os
 import re
+from functools import lru_cache
 from typing import Protocol, TypedDict
 
+import boto3
 import chromadb
-from sentence_transformers import SentenceTransformer
 
 import config
 
@@ -140,12 +143,39 @@ def extract_chunks(pdf_path: str) -> list[Chunk]:
     return chunks
 
 
+@lru_cache(maxsize=1)
+def _bedrock_client():
+    # boto3のbedrock-runtimeクライアントはAWS_BEARER_TOKEN_BEDROCK環境変数を
+    # 自動検出してベアラートークン認証に使う（IAMアクセスキー不要。AWS公式ドキュメント
+    # 記載の方式。generator.pyのAnthropicBedrockクライアントと同じ認証情報を再利用する）。
+    # reingest.yml等、OIDC経由のIAMロールのみでベアラートークンが未設定の環境では
+    # 設定せず、boto3の通常のIAM認証チェーン（OIDC AssumeRoleの一時クレデンシャル）に
+    # フォールバックする（metsukeyakuレビュー指摘E-1・C-3）。
+    if config.AWS_BEARER_TOKEN_BEDROCK:
+        os.environ["AWS_BEARER_TOKEN_BEDROCK"] = config.AWS_BEARER_TOKEN_BEDROCK
+    return boto3.client("bedrock-runtime", region_name=config.AWS_REGION)
+
+
+def embed_text(text: str) -> list[float]:
+    """Amazon Bedrock（Titan Text Embeddings V2）でテキストをembeddingへ変換する。"""
+    response = _bedrock_client().invoke_model(
+        modelId=config.EMBEDDING_MODEL,
+        body=json.dumps(
+            {
+                "inputText": text,
+                "dimensions": config.EMBEDDING_DIMENSIONS,
+                "normalize": True,
+            }
+        ),
+    )
+    return json.loads(response["body"].read())["embedding"]
+
+
 def ingest(pdf_path: str | None = None, store: VectorStoreProtocol | None = None) -> int:
     pdf_path = pdf_path or config.PDF_PATH
     store = store or ChromaVectorStore(config.CHROMA_DB_PATH)
     chunks = extract_chunks(pdf_path)
-    model = SentenceTransformer(config.EMBEDDING_MODEL)
-    embeddings = model.encode([c["content"] for c in chunks]).tolist()
+    embeddings = [embed_text(c["content"]) for c in chunks]
     store.add_chunks(chunks, embeddings)
     return store.count()
 
