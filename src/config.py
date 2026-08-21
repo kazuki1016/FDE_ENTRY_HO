@@ -27,7 +27,9 @@ PDF_PATH = os.getenv("PDF_PATH", "harness_engineering_intro.pdf")
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "data/chroma_db")
 LOG_PATH = os.getenv("LOG_PATH")  # 未設定時はAWS構成とみなし標準出力に切り替える（server.py _log_request参照）
 TOP_K = 5  # eval実行時、k=3ではSection5/Capstoneの正解ページが上位に入らずスコア70%だったため5に変更（ユーザー確認済み）
-TIMEOUT_SEC = 60
+TIMEOUT_SEC = 45  # 元は60。CloudFrontのLambda Function URLオリジンread_timeoutも60秒で、
+# ベクトル検索・Lambdaオーバーヘッド分の余白がなくCloudFront側のタイムアウトが先に発生し
+# HTMLエラーページが返る不具合が本番で発生したため、余白を確保する値に短縮した（ユーザー確認済み）
 
 API_KEY_HEADER = "X-API-Key"
 API_KEY = os.environ.get("APP_API_KEY")  # ngrok構成でのみ設定。AWS構成ではNone（Basic認証を使用）
