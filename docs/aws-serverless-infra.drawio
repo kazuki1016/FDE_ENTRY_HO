@@ -1,0 +1,317 @@
+<mxfile host="65bd71144e">
+    <diagram name="Page-1" id="diagram-1">
+        <mxGraphModel dx="1576" dy="518" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2050" pageHeight="1080" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title-group" value="" style="group;fontFamily=Helvetica;" parent="1" connectable="0" vertex="1">
+                    <mxGeometry x="50" y="30" width="1900" height="83" as="geometry"/>
+                </mxCell>
+                <mxCell id="title-text" value="ハーネスエンジニアリング入門 RAGシステム" style="text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;fontFamily=Helvetica;" parent="title-group" vertex="1">
+                    <mxGeometry width="900" height="42" as="geometry"/>
+                </mxCell>
+                <mxCell id="subtitle-text" value="AWSサーバーレス構成 — CloudFront + Lambda Container Image + Amazon Bedrock" style="text;html=1;resizable=0;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=16;fontFamily=Helvetica;" parent="title-group" vertex="1">
+                    <mxGeometry x="5" y="40" width="621" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="title-separator" value="" style="line;strokeWidth=2;html=1;fontSize=14;strokeColor=#FF9900;fontFamily=Helvetica;" parent="title-group" vertex="1">
+                    <mxGeometry x="5" y="70" width="1890" height="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="users-container" target="svc-group-cloudfront">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="users-container" value="ブラウザ" style="fillColor=#f5f5f5;strokeColor=light-dark(#666666,#D4D4D4);rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#333333;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1;perimeterSpacing=0;" parent="1" vertex="1">
+                    <mxGeometry x="54" y="221" width="107" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="users-icon" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#232F3D;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.users;fontFamily=Helvetica;" parent="users-container" vertex="1">
+                    <mxGeometry x="30" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="github-container" value="開発者 / GitHub Actions" style="fillColor=#f5f5f5;strokeColor=light-dark(#666666,#D4D4D4);rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#333333;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1;perimeterSpacing=0;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="880" width="140" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="github-icon" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#232F3D;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.internet;fontFamily=Helvetica;" parent="github-container" vertex="1">
+                    <mxGeometry x="46" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="aws-cloud" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;AWS Cloud&lt;/font&gt;" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;strokeColor=light-dark(#232F3E,#E4F0FF);fillColor=light-dark(#232F3E0D,#232F3E0D);fillStyle=auto;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;fontFamily=Helvetica;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="170" width="1020" height="610" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-4" value="4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="aws-cloud" vertex="1">
+                    <mxGeometry x="268" y="180" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-secrets" value="Security" style="fillColor=#FFEBEE;strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#DD344C;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="aws-cloud" vertex="1">
+                    <mxGeometry x="602" y="43" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-secrets" value="AWS Secrets Manager" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.secrets_manager;fontFamily=Helvetica;shadow=1;" parent="svc-group-secrets" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-5" value="6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="aws-cloud" vertex="1">
+                    <mxGeometry x="523" y="43" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7" value="8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="aws-cloud" vertex="1">
+                    <mxGeometry x="311" y="401" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-6" value="5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="aws-cloud" vertex="1">
+                    <mxGeometry x="487" y="465" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-3" value="3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="aws-cloud" vertex="1">
+                    <mxGeometry x="232" y="84" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-2" value="2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="aws-cloud" vertex="1">
+                    <mxGeometry x="52" y="186" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-cloudfront" value="CDN / フロント認証" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="210" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-cloudfront" value="Amazon CloudFront" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fontFamily=Helvetica;shadow=1;" parent="svc-group-cloudfront" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-s3front" value="Storage" style="fillColor=#E8F5E9;strokeColor=#3F8624;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#3F8624;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="410" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-s3front" value="Amazon S3" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#3F8624;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fontFamily=Helvetica;shadow=1;" parent="svc-group-s3front" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-fnurl" value="Compute" style="fillColor=#FFF2E8;strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#ED7100;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="210" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-fnurl" value="AWS Lambda Function URL" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fontFamily=Helvetica;shadow=1;" parent="svc-group-fnurl" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-lambda" value="Compute" style="fillColor=#FFF2E8;strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#ED7100;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="410" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-lambda" value="AWS Lambda" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fontFamily=Helvetica;shadow=1;" parent="svc-group-lambda" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-bedrock" value="AI/ML" style="fillColor=#E0F2F1;strokeColor=#01A88D;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#01A88D;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="610" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-bedrock" value="Amazon Bedrock" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;fontFamily=Helvetica;shadow=1;" parent="svc-group-bedrock" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-s3chroma" value="Storage" style="fillColor=#E8F5E9;strokeColor=#3F8624;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#3F8624;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="820" y="610" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-s3chroma" value="Amazon S3" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#3F8624;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fontFamily=Helvetica;shadow=1;" parent="svc-group-s3chroma" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-ecr" value="Compute" style="fillColor=#FFF2E8;strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#ED7100;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="410" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-ecr" value="Amazon ECR" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecr;fontFamily=Helvetica;shadow=1;" parent="svc-group-ecr" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="aux-group" value="Auxiliary Services" style="rounded=0;fillColor=none;dashed=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#666666,#FFFFFF);fontFamily=Helvetica;container=1;collapsible=0;strokeColor=#666666;strokeWidth=1;" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="210" width="150" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-group-cloudwatch" value="Logging" style="fillColor=#FCE4EC;strokeColor=#E7157B;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#E7157B;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="aux-group" vertex="1">
+                    <mxGeometry x="15" y="30" width="120" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="svc-cloudwatch" value="CloudWatch Logs" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;fontFamily=Helvetica;shadow=1;" parent="svc-group-cloudwatch" vertex="1">
+                    <mxGeometry x="36" y="25" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-1" value="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="184" y="219" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7-auth" value="7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="550" y="400" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-8" value="9" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="255" y="800" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-9" value="10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="380" y="800" width="28" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" parent="1" source="svc-group-cloudfront" target="svc-group-s3front" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge-2-label" value="静的配信(デフォルト)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontFamily=Helvetica;labelBackgroundColor=none;" parent="edge-2" connectable="0" vertex="1">
+                    <mxGeometry y="-14" relative="1" as="geometry">
+                        <mxPoint x="72" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" source="svc-group-cloudfront" target="svc-group-fnurl" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="svc-group-fnurl" target="svc-group-lambda" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge-4-label" value="Mangum変換" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontFamily=Helvetica;labelBackgroundColor=none;" parent="edge-4" connectable="0" vertex="1">
+                    <mxGeometry y="-14" relative="1" as="geometry">
+                        <mxPoint x="-33" y="-2" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" source="svc-group-lambda" target="svc-group-secrets" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="761" y="410"/>
+                            <mxPoint x="761" y="249"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-5-label" value="認証情報取得(コールドスタート時)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontFamily=Helvetica;labelBackgroundColor=none;" parent="edge-5" connectable="0" vertex="1">
+                    <mxGeometry y="-14" relative="1" as="geometry">
+                        <mxPoint x="-8" y="21" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="svc-group-lambda" target="svc-group-s3chroma" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="656" y="670"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" parent="1" source="svc-group-lambda" target="svc-group-bedrock" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge-ecr-lambda" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;exitX=0;exitY=0.3;exitDx=0;exitDy=0;" parent="1" source="svc-group-ecr" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="719" y="446"/>
+                            <mxPoint x="719" y="446"/>
+                        </Array>
+                        <mxPoint x="677" y="446" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-ecr-lambda-label" value="イメージ参照" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontFamily=Helvetica;fontStyle=2;labelBackgroundColor=none;" parent="edge-ecr-lambda" connectable="0" vertex="1">
+                    <mxGeometry y="-10" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="github-container" target="svc-group-ecr" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="292" y="550"/>
+                            <mxPoint x="1140" y="550"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-8-label" value="deploy.yml: pytest→cdk deploy(インフラ全体更新、ECRへのpush含む)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontFamily=Helvetica;labelBackgroundColor=none;" parent="edge-8" connectable="0" vertex="1">
+                    <mxGeometry x="-0.6" y="-12" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="github-container" target="svc-group-s3chroma" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="348" y="750"/>
+                            <mxPoint x="880" y="750"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="edge-9-label" value="reingest.yml: ingest→tar.gz→upload" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontFamily=Helvetica;labelBackgroundColor=none;" parent="edge-9" connectable="0" vertex="1">
+                    <mxGeometry x="0.5" y="-12" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend-outer" value="" style="group" parent="1" connectable="0" vertex="1">
+                    <mxGeometry x="1300" y="30" width="699" height="1000" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-bg" value="" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;fillColor=light-dark(#EDF3FF,#305363);strokeColor=#6c8ebf;" parent="legend-outer" vertex="1">
+                    <mxGeometry width="699" height="1000" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-container" value="" style="group" parent="legend-outer" connectable="0" vertex="1">
+                    <mxGeometry x="21.507692307692306" y="20" width="655.9846153846154" height="960" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-1-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-1-badge-legend" value="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-1-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-1-desc-legend" value="&lt;div&gt;&lt;b&gt;HTTPSリクエスト &amp;amp; フロント認証&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;CloudFront FunctionsがAuthorizationヘッダーをKeyValueStoreの認証情報と照合。失敗時401&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;TLS終端もCloudFrontで実施（デフォルトドメインのCloudFront提供証明書を使用）&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-1-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-2-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="85" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-2-badge-legend" value="2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-2-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-2-desc-legend" value="&lt;div&gt;&lt;b&gt;静的ファイル配信&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;デフォルトパスはS3（OAC限定）からindex.html等を配信&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;S3バケットへの直接アクセスは不可（CloudFront OAC経由のみ許可）&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-2-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-3-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="170" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-3-badge-legend" value="3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-3-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-3-desc-legend" value="&lt;div&gt;&lt;b&gt;APIパスのルーティング&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;/ask・/health・/statsはLambda Function URLへ転送（Authorizationヘッダーも転送）&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;Function URL自体の認証タイプはNONE（認証はCloudFront層・FastAPI層の2層で実施）、呼び出しモードはBUFFERED&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-3-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-4-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="255" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-4-badge-legend" value="4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-4-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-4-desc-legend" value="&lt;div&gt;&lt;b&gt;Lambda起動&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;MangumアダプタがFunction URLイベントをFastAPIリクエストに変換&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;実行環境はLambda Container Image（Amazon ECR、torch等がZIP上限250MBを超過するため）、メモリ3008MB&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-4-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-5-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="340" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-5-badge-legend" value="5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-5-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-5-desc-legend" value="&lt;div&gt;&lt;b&gt;ChromaDBキャッシュ展開（コールドスタート時のみ）&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;S3からchroma_db_latest.tar.gzをダウンロードし/tmp/chroma_dbへ展開（ウォーム時はスキップ）&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;lambda_handler.pyのモジュール読み込み時（Mangum/FastAPI初期化より前）に実行&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-5-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-6-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="425" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-6-badge-legend" value="6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-6-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-6-desc-legend" value="&lt;div&gt;&lt;b&gt;シークレット取得（コールドスタート時のみ）&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;Secrets ManagerからBasic認証情報・Bedrock APIキーを取得し実行環境にキャッシュ&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-6-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7auth-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="510" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7auth-badge-legend" value="7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-7auth-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7auth-desc-legend" value="&lt;div&gt;&lt;b&gt;FastAPI層Basic認証検証（2層目）&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;POST /askのみ対象。hmac.compare_digestで定数時間比較（タイミング攻撃対策）&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;失敗時403。CloudFrontをバイパスしたLambda Function URL直接アクセスへの防御として機能&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-7auth-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="595" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7-badge-legend" value="8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-7-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-7-desc-legend" value="&lt;div&gt;&lt;b&gt;回答生成&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;ベクトル検索（上位k=5件）後、Amazon Bedrock経由でClaudeが回答生成しJSON形式で返却&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;Secrets Manager取得済みのBedrock APIキー（ベアラートークン）で認証&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-7-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-8-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="680" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-8-badge-legend" value="9" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-8-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-8-desc-legend" value="&lt;div&gt;&lt;b&gt;デプロイ（GitHub Actions: deploy.yml）&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;GitHub Release公開をトリガーにpytest→cdk deployを実行&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;cdk deployはCloudFront・S3・Lambda・IAM等インフラ全体を宣言的に更新し、その一部としてContainer ImageをビルドしECRへpushする（OIDC連携のIAMロールでAWS認証）&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-8-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-9-legend" value="" style="group;fontFamily=Helvetica;" parent="legend-container" connectable="0" vertex="1">
+                    <mxGeometry y="765" width="645.2307692307693" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-9-badge-legend" value="10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" parent="step-9-legend" vertex="1">
+                    <mxGeometry y="2" width="43.01538461538461" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="step-9-desc-legend" value="&lt;div&gt;&lt;b&gt;PDF再ingest（GitHub Actions: reingest.yml）&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;workflow_dispatchで手動起動。S3からPDFをダウンロード→ingest.py実行&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;→tar.gzアーカイブ化→S3（ChromaDB永続化用）へアップロード&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="step-9-legend" vertex="1">
+                    <mxGeometry x="55.92" width="589.3107692307692" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-note-1" value="&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;※ CloudWatch Logs: 全APIリクエスト（query, retrieved_chunks, answer, latency_ms）をJSON Lines形式でstdout経由自動収集（矢印は省略）&lt;/span&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=12;fontStyle=2;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="legend-container" vertex="1">
+                    <mxGeometry y="855" width="645.2307692307693" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-note-2" value="&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;※ 点線矢印: ECR内Lambda Container Imageの参照関係を示す（同期呼び出しではない）&lt;/span&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=12;fontStyle=2;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="legend-container" vertex="1">
+                    <mxGeometry y="885" width="645.2307692307693" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-note-3" value="&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;※ 本図のステップ番号(1〜10)はspec_infra.md 6.2章の記述に基づく簡略化した番号体系であり、同章のステップ番号と厳密な一対一対応ではない&lt;/span&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=12;fontStyle=2;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" parent="legend-container" vertex="1">
+                    <mxGeometry y="915" width="645.2307692307693" height="30" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
