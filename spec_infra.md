@@ -525,7 +525,27 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 - デプロイ用ロール: CDKが操作する各サービス（CloudFront・S3・Lambda・IAM・Secrets Manager等）へのデプロイ権限。CDKの `cdk bootstrap` が生成するデプロイ用ロールの利用を基本とする
 - reingest用ロール: S3（source PDF読み取り、ChromaDBアーカイブ書き込み）への限定権限のみ
 
-[要確認] 上記2ロールの信頼関係（trust policy、対象GitHubリポジトリ・ブランチの限定）の具体的な設定内容は未確定
+**確定（ユーザー確認済み。デプロイ成功により実機検証済み）**: 信頼関係（trust policy）の`sub`条件は、GitHubのimmutable ID形式（`repo:{owner}@{owner_id}/{repo}@{repo_id}:*`）を使用する。従来形式（`repo:{owner}/{repo}:*`）ではAssumeRoleWithWebIdentityが`Not authorized`で拒否されることが実機で判明したため、以下の形式に統一する:
+
+```json
+{
+  "Effect": "Allow",
+  "Principal": {
+    "Federated": "arn:aws:iam::215552491011:oidc-provider/token.actions.githubusercontent.com"
+  },
+  "Action": "sts:AssumeRoleWithWebIdentity",
+  "Condition": {
+    "StringEquals": {
+      "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+    },
+    "StringLike": {
+      "token.actions.githubusercontent.com:sub": "repo:kazuki1016@71158437/FDE_ENTRY_HO@1340135191:*"
+    }
+  }
+}
+```
+
+`GitHubActionsDeployRole`・`GitHubActionsReingestRole`とも同一の条件を使用する。ブランチ・タグ単位の限定は行わない（デプロイ用はリリース起点、reingest用は手動起動のみのためリポジトリ単位の限定で足りると判断。ユーザー確認済み）。
 
 ### 9.5 ディレクトリ構成への影響（要CLAUDE.md追記、8.1章の内容に追加）
 
@@ -542,7 +562,7 @@ ngrok構成の品質ゲート（req.md / spec.md 6.8章）を継承し、以下�
 | ~~1~~ | 2.2 S3（フロントエンド） | **解消**: `fde-rag-frontend-<AWSアカウントID>`に固定した（ユーザー確認済み。`infra/app.py`でCDK_DEFAULT_ACCOUNTを明示的にStackへ渡し、`main_stack.py`でアカウントIDを含むバケット名を組み立てる。GitHub ActionsのVariable設定前に判明させるため） |
 | 2 | 3.2 データ更新フロー | アップロード先のS3バケットパス（オブジェクトキー）。2.5章のバケット名確定後に決定 |
 | 3 | 7 受け入れ基準 AC-INFRA-5-2 | 無料枠内に収まる具体的なリクエスト数の閾値 |
-| 4 | 9.4 IAMロール（OIDC） | デプロイ用・reingest用ロールの信頼関係（trust policy）の具体的な設定内容 |
+| ~~4~~ | 9.4 IAMロール（OIDC） | **解消**: 信頼関係（trust policy）の`sub`条件はGitHub immutable ID形式（`repo:kazuki1016@71158437/FDE_ENTRY_HO@1340135191:*`）で確定（ユーザー確認済み。デプロイ成功により実機検証済み） |
 | 6 | 9.2 / 9.3 CI/CDワークフロー（実装時に判明） | GitHubリポジトリに以下のSecrets/Variablesの設定が必要（人間承認B・Cの完了後に登録する）。未設定の間はワークフローの実行自体は失敗する（YAML構文は妥当）:<br>Secrets: `APP_API_KEY`・`AWS_BEARER_TOKEN_BEDROCK`（deploy.ymlのテスト実行用）<br>Variables: `AWS_DEPLOY_ROLE_ARN`・`AWS_REINGEST_ROLE_ARN`・`AWS_REGION`・`CHROMA_S3_BUCKET` |
 | 7 | 9.3 reingestワークフロー（実装時に判明） | source PDFのS3配置キーを `source/harness_engineering_intro.pdf`（ChromaDB永続化用バケット内、`chroma_db_latest.tar.gz`と同居）と仮決めした。2.5章のバケット名確定・要確認#1と合わせて確定させる |
 | 5 | 2.6 ECR | Lambda Container Imageのベースイメージ（`@metsukeyaku`指摘R-1対応で新設） |
