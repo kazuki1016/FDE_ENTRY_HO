@@ -4,7 +4,7 @@
 - **対象環境**: AWS本番環境（CloudFront + Lambda Function URL構成）
 - **対象コンポーネント**: `AppFunction`（`infra/stacks/main_stack.py`定義のLambda）
 - **関連インシデント**: [[2026-08-21_lambda-embedding-model-network-fallback]]（本件の直接のトリガー。HF_HOME修正のデプロイ後に本件が発生した）
-- **ステータス**: コード対応済み・**S3データ未更新／本番デプロイ待ち**
+- **ステータス**: 解消済み（コード対応・S3データ更新・本番デプロイ・実測検証すべて完了。詳細は5節）
 
 ## 1. 概要
 
@@ -78,6 +78,7 @@ AWS Lambdaの**INIT phaseには固定10秒の上限があり（設定変更不�
 - ~~`GitHubActionsReingestRole`のOIDC trust policyが旧形式のまま~~ **完了（2026-08-21）**: `GitHubActionsDeployRole`と同じ問題（sub条件がGitHub immutable ID形式`repo:kazuki1016@71158437/FDE_ENTRY_HO@1340135191:*`になっておらず`AssumeRoleWithWebIdentity`が拒否される）がreingest用ロールにも残っていたため修正。デプロイ用ロールを修正した際にreingest用ロールへの横展開が漏れていた
 - ~~S3に元PDF（`source/harness_engineering_intro.pdf`）が未アップロード~~ **完了（2026-08-21）**: アップロード済み
 - **`reingest.yml`のworkflow_dispatchによる実際の動作確認済み（2026-08-21）**: 上記3件の修正後、全ステップGREENで完走（run 32468506547、2分28秒）。S3の`chroma_db_latest.tar.gz`が最新embeddingで更新されたことを確認
-- 新しいリリースの発行による本番デプロイが未実施
-- デプロイ後、コールドスタート時間が実際に改善したかの再測定（CloudWatch Logsの`Init Duration`・`REPORT`行）が必要
+- **【新規判明・対応済み】検証run 32468506547が未コミット・未pushのコードに対して実行されており、S3を384次元の旧アーカイブで再度上書きしていた**: Bedrock移行のコード変更（`ingest.py`のembed_text()等）をコミット・push（`010f20c`）する前に`reingest.yml`をworkflow_dispatchで起動したため、GitHub Actionsのcheckoutはリモートの旧コード（sentence-transformers時代）を取得し、384次元のembeddingでS3を上書きしていた。その状態で本番リリースを行い、`/ask`が`chromadb.errors.InvalidArgumentError: Collection expecting embedding with dimension of 384, got 1024`で失敗する事象が発生した（利用者報告により発覚）。コードpush後に`reingest.yml`を再実行（run 32470225716）し、S3が実際に1024次元を受け付けることを直接検証して解消した。**教訓**: `reingest.yml`等CI起点の検証は、対象コードが実際にリモートへpush済みであることを確認してから行うこと
+- 新しいリリースの発行による本番デプロイは実施済み（コールドスタートは実測 約9.5秒に大幅短縮、旧embeddingの40〜90秒から改善。詳細は次項）
+- **コールドスタート改善の実測結果（2026-08-21 09:51 UTC、REPORT行より）**: `Init Duration: 9457.59 ms`（AWS Lambda INIT phaseの固定10秒上限を下回り、タイムアウトなし）、`Max Memory Used: 238 MB`（旧embedding時は654〜1103MBだった）。embeddingのBedrock移行によりコールドスタート問題は解消したと判断できる
 - `spec.md`・`spec_infra.md`・`req.md`のsentence-transformers関連記述は本件と合わせて更新済み

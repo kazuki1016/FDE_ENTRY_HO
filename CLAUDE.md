@@ -100,7 +100,8 @@ FDE_ENTRY_HO/
 │   └── test_server.py
 ├── evals/
 │   ├── eval_set.json    (eval入力セット)
-│   └── run_eval.py      (eval実行スクリプト)
+│   ├── run_eval.py      (eval実行スクリプト。正解率を評価)
+│   └── run_latency_eval.py (AWS本番エンドポイントへの応答時間評価。コールドスタート含む実測。AWS構成採用時のみ意味を持つ)
 ├── audit/
 │   └── conformance_report_YYMMDDHH_XXXX.md  (命名規則は .claude/agents/auditor.md に従う)
 ├── logs/
