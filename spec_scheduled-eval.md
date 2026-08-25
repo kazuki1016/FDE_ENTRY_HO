@@ -70,7 +70,7 @@ Secrets Manager 取得ステップを Install dependencies の前に挿入する
 | # | ステップ名 | 変更 | 概要 |
 |---|---|---|---|
 | 1 | `actions/checkout@v6` | 変更なし | リポジトリをチェックアウト |
-| 2 | Configure AWS credentials（OIDC） | **新規追加** | `aws-actions/configure-aws-credentials@v4` で OIDC AssumeRole を実行 |
+| 2 | Configure AWS credentials（OIDC） | **新規追加** | `aws-actions/configure-aws-credentials@v6` で OIDC AssumeRole を実行 |
 | 3 | Retrieve secrets from Secrets Manager | **新規追加** | `aws secretsmanager get-secret-value` で認証情報を取得し、マスク処理後に `$GITHUB_ENV` へ書き込む |
 | 4 | `actions/setup-python@v6` | 変更なし | Python 3.12 セットアップ |
 | 5 | Install dependencies | 変更なし | `pip install -r requirements.txt` |
@@ -84,14 +84,14 @@ Secrets Manager 取得ステップを Install dependencies の前に挿入する
 
 ```yaml
 - name: Configure AWS credentials (OIDC)
-  uses: aws-actions/configure-aws-credentials@v4
+  uses: aws-actions/configure-aws-credentials@v6
   with:
     role-to-assume: ${{ vars.AWS_SCHEDULED_EVAL_ROLE_ARN }}
     aws-region: ${{ vars.AWS_REGION }}
 ```
 
 - `permissions` ブロックに `id-token: write`（OIDC トークン発行用）および `contents: read` を付与すること。
-- `aws-actions/configure-aws-credentials@v4` は既存の deploy.yml・reingest.yml と同じバージョンを使用する（バージョン統一）。
+- `aws-actions/configure-aws-credentials@v6` は既存の deploy.yml・reingest.yml と同じバージョンを使用する（バージョン統一。両ファイルとも実装時点で`@v6`を使用していることを確認済み）。
 - `AWS_SCHEDULED_EVAL_ROLE_ARN` は GitHub Variables（Secret ではなく Variable）に登録する（ARN は非機密値。spec_infra.md 9.2章の `AWS_DEPLOY_ROLE_ARN`・`AWS_REINGEST_ROLE_ARN` と同パターン）。
 
 ### 2.4 Secrets Manager からの認証情報取得

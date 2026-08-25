@@ -65,11 +65,11 @@ Andrej Karpathy の行動指針をベースに、本講座の7セクションの
 - 回答は常に日本語で生成する（英語での回答は禁止）
 
 ### 5.2 制約設計 / フィードフォワード（柱2）
-- 実装前に必ず `req.md` の受け入れ基準を確認する。AWS構成を採用する場合は `spec_infra.md` の受け入れ基準（7章）も確認する
+- 実装前に必ず `req.md` の受け入れ基準を確認する。AWS構成を採用する場合は `spec_infra.md` の受け入れ基準（7章）も確認する。scheduled-eval.yml関連の変更を行う場合は `req_scheduled-eval.md`・`spec_scheduled-eval.md`（6章 受け入れ基準）も確認する
 - 新規ファイル作成時は、このCLAUDE.mdの制約に違反しないか確認する
 - spec.md に残る `[要確認]` 項目は、以下の3段階で扱う。値を無断で確定させたまま実装を進めない:
-  1. **確定値**: ユーザーに確認済みの値。`config.py` に定数として記録する。`POST /ask` の認証方式: **ngrok構成ではAPIキー認証（`X-API-Key`ヘッダー、既存実装・監査済み。spec.md 6.4章に記録）を維持する。AWS構成ではこれとは別方式としてBasic認証を採用する**（ユーザー確認済み。spec_infra.md 4章に記録。FastAPI層は`hmac.compare_digest`によるタイミング攻撃対策必須。CloudFront Functions層はJSランタイムに`crypto.timingSafeEqual`相当の機能がなくタイミング安全な比較を実装できないため、通常の文字列比較（`!==`）を使用する—FastAPI層が第2防衛線として機能するため実質的リスクは軽微と判断。spec_infra.md 8.7章参照）。両者は別デプロイ構成向けの別方式であり、一方が他方を置き換えるものではない。LLMモデル: claude-sonnet-4.6（Bedrock表記: `jp.anthropic.claude-sonnet-4-6`、東京リージョン、ユーザー確認済み。spec.md付記#14）。PDFファイル配置パス: プロジェクトルート直下（`config.py` の `PDF_PATH`、ユーザー確認済み。spec.md付記#10）
-  2. **推奨デフォルト値（PENDING）**: 未確認だが実装を進めるための合理的な既定値がある項目。`config.py` に `# [PENDING] ユーザー未確認。デフォルト値を使用中` というコメント付きで記載し、実装をブロックしない。対象: embeddingモデル名（現在: Amazon Bedrock Titan Text Embeddings V2, `amazon.titan-embed-text-v2:0`。元はsentence-transformers。incidents/参照）、embedding次元数（現在1024次元、`config.EMBEDDING_DIMENSIONS`）、チャンクサイズ/overlap、距離関数、セクション境界検出方法、`GET /health`・`GET /stats` の認証要否（既定は認証不要）、`last_updated` のフォーマット（既定はISO 8601）
+  1. **確定値**: ユーザーに確認済みの値。`config.py` に定数として記録する。`POST /ask` の認証方式: **ngrok構成ではAPIキー認証（`X-API-Key`ヘッダー、既存実装・監査済み。spec.md 6.4章に記録）を維持する。AWS構成ではこれとは別方式としてBasic認証を採用する**（ユーザー確認済み。spec_infra.md 4章に記録。FastAPI層は`hmac.compare_digest`によるタイミング攻撃対策必須。CloudFront Functions層はJSランタイムに`crypto.timingSafeEqual`相当の機能がなくタイミング安全な比較を実装できないため、通常の文字列比較（`!==`）を使用する—FastAPI層が第2防衛線として機能するため実質的リスクは軽微と判断。spec_infra.md 8.7章参照）。両者は別デプロイ構成向けの別方式であり、一方が他方を置き換えるものではない。LLMモデル: claude-sonnet-4.6（Bedrock表記: `jp.anthropic.claude-sonnet-4-6`、東京リージョン、ユーザー確認済み。spec.md付記#14）。PDFファイル配置パス: プロジェクトルート直下（`config.py` の `PDF_PATH`、ユーザー確認済み。spec.md付記#10）。`AWS_BEARER_TOKEN_BEDROCK` はdeploy.ymlが直接参照しているため、scheduled-eval.yml移行後もGitHub Secretsから削除しない（ユーザー確認済み。spec_scheduled-eval.md 4.1章）
+  2. **推奨デフォルト値（PENDING）**: 未確認だが実装を進めるための合理的な既定値がある項目。`config.py` に `# [PENDING] ユーザー未確認。デフォルト値を使用中` というコメント付きで記載し、実装をブロックしない。対象: embeddingモデル名（現在: Amazon Bedrock Titan Text Embeddings V2, `amazon.titan-embed-text-v2:0`。元はsentence-transformers。incidents/参照）、embedding次元数（現在1024次元、`config.EMBEDDING_DIMENSIONS`）、チャンクサイズ/overlap、距離関数、セクション境界検出方法、`GET /health`・`GET /stats` の認証要否（既定は認証不要）、`last_updated` のフォーマット（既定はISO 8601）、scheduled-eval用IAMロール名（現在: `GitHubActionsScheduledEvalRole`）・対応するGitHub Variable名（`AWS_SCHEDULED_EVAL_ROLE_ARN`）（spec_scheduled-eval.md 付記P1）、Slack Webhook URLの保存場所（現在: GitHub Secretsに`SLACK_WEBHOOK_URL`として保存。spec_scheduled-eval.md 付記P2）
   3. **ブロック値**: 合理的な推測が不可能、またはセキュリティ・データ配置に直結する項目。値が確定するまで `raise NotImplementedError("[要確認] ...")` で実装をブロックする。現時点で該当項目なし
 - LLMバックエンド（generator.py）とベクトルDB（retriever.py・ingest.py）は抽象インターフェース（Python Protocolまたは抽象基底クラス）を介して実装し、Anthropic ClaudeやChromaDBへの直接依存を `server.py` に書かない（NFR-4: 剥がせる設計）
 - ngrokはCLIツール呼び出しのため、Protocol等による抽象化は行わない（Simplicity First優先）。起動コマンド・パラメータは `config.py` の定数として外出しし、`server.py` に直書きしない程度の疎結合で足りる（NFR-4）
@@ -117,8 +117,9 @@ FDE_ENTRY_HO/
 │   └── stacks/          (CDK Stack定義)
 ├── .github/
 │   └── workflows/       (GitHub Actionsワークフロー定義。AWS構成採用時のみ存在)
-│       ├── deploy.yml   (コードデプロイ: pytest → cdk deploy。GitHub Releaseのpublishedイベントがトリガー。evalはCI/CDに含めない、5.2章参照)
-│       └── reingest.yml (PDF再ingest: workflow_dispatch)
+│       ├── deploy.yml   (コードデプロイ: pytest → cdk deploy。GitHub Releaseのpublishedイベントがトリガー。evalはdeploy.ymlに含めない、5.2章参照)
+│       ├── reingest.yml (PDF再ingest: workflow_dispatch)
+│       └── scheduled-eval.yml (日次eval監視: schedule + workflow_dispatch。spec_scheduled-eval.md参照)
 └── .claude/
     └── agents/
 ```
@@ -127,7 +128,9 @@ FDE_ENTRY_HO/
 
 - **シークレット管理**: LambdaランタイムのBasic認証クレデンシャルおよびBedrock APIキー（`AWS_BEARER_TOKEN_BEDROCK`）はAWS Secrets Managerで管理する。Lambda環境変数への平文保存は禁止する（理由: 実行ロール権限を持つ全員が参照できるため）
 - **CI/CD認証**: GitHub ActionsからAWSへの認証はOIDC連携のIAMロールAssumeRoleのみ使用する。長期的なAWSアクセスキー（`AWS_ACCESS_KEY_ID` 等）をGitHub Secretsに保存しない（理由: 漏洩リスクを排除する。spec_infra.md 9.2章）
-- **CI/CDパイプライン順序**: `deploy.yml` は `pytest tests/` → `cdk deploy` の順で実行する。トリガーはGitHub Releaseの`published`イベントのみ（push毎の自動デプロイは行わない。意図的なリリース判断をデプロイの起点とする。ユーザー確認済み）。テスト失敗時は後続ステップに進まない（理由: 品質ゲートをバイパスしたデプロイを構造的に防止する）。**eval実行（`python evals/run_eval.py`）はCI/CDから除外する**（理由: 毎デプロイでBedrock API呼び出し10問分の課金が発生し、ChromaDBデータ準備の複雑化も伴うため。auditor・metsukeyakuレビュー同様、mainマージ前に人間が手動実行し80%以上を確認する運用とする。spec_infra.md 9.2章`@metsukeyaku`指摘C-3）
+- **CI/CDパイプライン順序**: `deploy.yml` は `pytest tests/` → `cdk deploy` の順で実行する。トリガーはGitHub Releaseの`published`イベントのみ（push毎の自動デプロイは行わない。意図的なリリース判断をデプロイの起点とする。ユーザー確認済み）。テスト失敗時は後続ステップに進まない（理由: 品質ゲートをバイパスしたデプロイを構造的に防止する）。**eval実行（`python evals/run_eval.py`）はdeploy.ymlには含めない**（理由: 毎デプロイでBedrock API呼び出し10問分の課金が発生し、ChromaDBデータ準備の複雑化も伴うため。auditor・metsukeyakuレビュー同様、mainマージ前に人間が手動実行し80%以上を確認する運用とする。spec_infra.md 9.2章`@metsukeyaku`指摘C-3）
+- **scheduled-eval用IAMロール**: `scheduled-eval.yml`用に`GitHubActionsScheduledEvalRole`（PENDING）を、deploy.yml用・reingest.yml用とは独立した第3のOIDC連携ロールとして作成する。付与する権限は`secretsmanager:GetSecretValue`を`fde-rag/aws-secrets`の完全ARNのみに限定し、ワイルドカードは使用しない（spec_infra.md 8.2章の最小権限方針を継承。spec_scheduled-eval.md 3.3章）
+- **日次eval監視・Slack通知**: `scheduled-eval.yml`が毎日JST9:00頃（`schedule`トリガー）に`run_eval.py`（正解率）・`run_latency_eval.py`（応答時間・コールドスタート）を実行する。失敗時（正解率80%未満、またはいずれかの質問がNFR-1の60秒SLAを超過）はワークフローが失敗として記録される。eval実行後は合否に関わらずSlack Incoming Webhookへ結果を通知する（`SLACK_WEBHOOK_URL`はGitHub Secretsに保存しソースコードにハードコードしない。通知失敗はeval合否判定に影響させない。可観測性の詳細は5.5章参照。spec_scheduled-eval.md 2.5章）。上記「deploy.ymlにはevalを含めない」方針とは矛盾しない。deploy.ymlは毎デプロイ実行のためBedrock課金が無制限に増えるが、scheduled-eval.ymlは監視目的で1日1回という限定的・予測可能なコストのため許容する
 
 ### 5.3 検証ループ / フィードバック（柱3）
 - コード変更のたびにテストを実行し、失敗を自己修正する
@@ -146,6 +149,7 @@ FDE_ENTRY_HO/
 - ログ形式はJSON Lines（1リクエスト1行）
 - ログファイルは `logs/requests.jsonl` に出力する（ngrok構成。AWS構成では stdout に出力し CloudWatch Logs に自動収集する。`/tmp` はエフェメラルなため永続化先として使用しない）
 - エラーはスタックトレースを含めてログに記録する
+- eval結果のSlack通知（scheduled-eval.yml専用）の詳細は5.2章「日次eval監視・Slack通知」参照
 
 ## 6. 禁止事項
 
