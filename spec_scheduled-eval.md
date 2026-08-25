@@ -230,7 +230,7 @@ EOF
 
 | 項目 | 値 |
 |---|---|
-| [推奨デフォルト値（PENDING）] ロール名 | `GitHubActionsScheduledEvalRole`（`GitHubActionsDeployRole`・`GitHubActionsReingestRole` の命名規則を踏襲） |
+| ロール名（**確定・作成済み**） | `GitHubActionsScheduledEvalRole`（`GitHubActionsDeployRole`・`GitHubActionsReingestRole` の命名規則を踏襲。ARN: `arn:aws:iam::215552491011:role/GitHubActionsScheduledEvalRole`。AWS CLIで作成済み、Trust Policy・インラインポリシー`ScheduledEvalSecretsAccess`とも実機で検証済み） |
 | AWSアカウントID | `215552491011`（既存ロールと同一。spec_infra.md 9.4章より） |
 | リージョン | `ap-northeast-1`（既存リソースと同一） |
 | 作成方法 | AWS コンソールまたは AWS CLI による手動作成（IAM はグローバルサービスのためリージョン指定不要） |
@@ -280,7 +280,7 @@ EOF
     {
       "Effect": "Allow",
       "Action": "secretsmanager:GetSecretValue",
-      "Resource": "[要確認: fde-rag/aws-secrets の完全 ARN]"
+      "Resource": "arn:aws:secretsmanager:ap-northeast-1:215552491011:secret:fde-rag/aws-secrets-ELLHtC"
     }
   ]
 }
@@ -288,7 +288,7 @@ EOF
 
 | 権限 | 対象リソース | 備考 |
 |---|---|---|
-| `secretsmanager:GetSecretValue` | `fde-rag/aws-secrets` の完全 ARN（`arn:aws:secretsmanager:ap-northeast-1:215552491011:secret:fde-rag/aws-secrets-XXXXXX` 形式。末尾のランダムサフィックスを含む正確な ARN を指定すること） | 個別 ARN 指定。ワイルドカード不使用 |
+| `secretsmanager:GetSecretValue` | `arn:aws:secretsmanager:ap-northeast-1:215552491011:secret:fde-rag/aws-secrets-ELLHtC`（`aws secretsmanager describe-secret --secret-id fde-rag/aws-secrets --query ARN --output text` で取得・確定済み） | 個別 ARN 指定。ワイルドカード不使用 |
 
 **このロールに付与しない権限（過剰権限の排除）:**
 
@@ -314,7 +314,7 @@ IAMロール作成・動作確認が完了した後（5章の移行手順参照�
 
 | Variable 名 | 値 | 備考 |
 |---|---|---|
-| [推奨デフォルト値（PENDING）] `AWS_SCHEDULED_EVAL_ROLE_ARN` | `arn:aws:iam::215552491011:role/GitHubActionsScheduledEvalRole`（ロール名確定後に確定） | IAM ロール作成後に登録する。既存 `AWS_DEPLOY_ROLE_ARN`・`AWS_REINGEST_ROLE_ARN` と同パターン |
+| `AWS_SCHEDULED_EVAL_ROLE_ARN`（**確定・登録済み**） | `arn:aws:iam::215552491011:role/GitHubActionsScheduledEvalRole` | IAMロール作成済み（3.1章）。`gh variable set`でGitHub Variablesに登録済み（移行手順5章 手順3）。既存 `AWS_DEPLOY_ROLE_ARN`・`AWS_REINGEST_ROLE_ARN` と同パターン |
 
 ### 4.3 維持する既存 Secrets / Variables
 
@@ -333,7 +333,7 @@ IAMロール作成・動作確認が完了した後（5章の移行手順参照�
 
 | Secret 名 | 値 | 備考 |
 |---|---|---|
-| [推奨デフォルト値（PENDING）] `SLACK_WEBHOOK_URL` | Slack の Incoming Webhook アプリで生成した Webhook URL（`https://hooks.slack.com/services/...` 形式） | AWS 認証情報ではないため Secrets Manager での管理は不要と判断（付記 P2・2.5章参照）。未設定の場合、Notify Slack ステップは `continue-on-error: true` により失敗するが eval 合否判定には影響しない |
+| `SLACK_WEBHOOK_URL`（**確定・登録済み**） | Slack の Incoming Webhook アプリで生成した Webhook URL（`https://hooks.slack.com/services/...` 形式）。`gh secret set`でGitHub Secretsに登録済み | AWS 認証情報ではないため Secrets Manager での管理は不要と判断（付記 P2・2.5章参照）。未設定の場合、Notify Slack ステップは `continue-on-error: true` により失敗するが eval 合否判定には影響しない |
 
 ---
 
@@ -344,14 +344,34 @@ IAMロール作成・動作確認が完了した後（5章の移行手順参照�
 
 | # | ステップ | 実施者 | 確認事項 |
 |---|---|---|---|
-| 1 | `fde-rag/aws-secrets` の完全 ARN を取得する | 開発者 | AWS コンソール（Secrets Manager）または `aws secretsmanager describe-secret --secret-id fde-rag/aws-secrets --query ARN --output text` で確認する |
-| 2 | IAMロール（`GitHubActionsScheduledEvalRole`）を作成する | 開発者 | 3章の Trust Policy・権限ポリシーを設定する。ロール ARN を控える |
-| 3 | GitHub Variables に `AWS_SCHEDULED_EVAL_ROLE_ARN` を登録する | 開発者 | 手順2で取得したロール ARN を設定する |
-| 4 | GitHub Secrets に `SLACK_WEBHOOK_URL` を登録する | 開発者 | Slack の Incoming Webhook アプリで Webhook URL を生成し、登録する（4.4章参照） |
-| 5 | scheduled-eval.yml を本仕様に従い更新し、リポジトリに push する | 開発者 | 6章の受け入れ基準に沿った動作確認を行う |
+| ~~1~~ | ~~`fde-rag/aws-secrets` の完全 ARN を取得する~~ | 開発者 | **完了**: `aws secretsmanager describe-secret --secret-id fde-rag/aws-secrets --query ARN --output text` で取得（結果: `arn:aws:secretsmanager:ap-northeast-1:215552491011:secret:fde-rag/aws-secrets-ELLHtC`） |
+| ~~2~~ | ~~IAMロール（`GitHubActionsScheduledEvalRole`）を作成する~~ | 開発者 | **完了**: AWS CLI（`aws iam create-role`・`aws iam put-role-policy`）で作成。3.1〜3.3章参照 |
+| ~~3~~ | ~~GitHub Variables に `AWS_SCHEDULED_EVAL_ROLE_ARN` を登録する~~ | 開発者 | **完了**: `gh` CLI で登録（実行例は下記参照） |
+| ~~4~~ | ~~GitHub Secrets に `SLACK_WEBHOOK_URL` を登録する~~ | 開発者 | **完了**: `gh` CLI で登録（実行例は下記参照） |
+| 5 | scheduled-eval.yml を本仕様に従い更新し、リポジトリに push する | Claude Code | 6章の受け入れ基準に沿った動作確認を行う |
 | 6 | `workflow_dispatch` で手動起動し、動作確認を行う | 開発者 | AC-SEVAL-1〜AC-SEVAL-5 を満たすことを確認する |
 | 7 | 動作確認完了後に GitHub Secrets から `BASIC_AUTH_USERNAME`・`BASIC_AUTH_PASSWORD` を削除する | 開発者 | 削除後にも `workflow_dispatch` で動作確認する（AC-SEVAL-2） |
 | ~~8~~ | ~~`AWS_BEARER_TOKEN_BEDROCK` の削除要否を確認する~~ | — | **解消（ユーザー確認済み）**: deploy.ymlが直接参照しているため削除しない（4.1章参照）。対応不要 |
+
+**手順3・4の実行例（`gh` CLI）:**
+
+```bash
+# 手順3: IAMロールARNをGitHub Variablesに登録（非機密値）
+gh variable set AWS_SCHEDULED_EVAL_ROLE_ARN \
+  --body "arn:aws:iam::215552491011:role/GitHubActionsScheduledEvalRole" \
+  --repo kazuki1016/FDE_ENTRY_HO
+
+# 手順4: Slack Incoming Webhook URLをGitHub Secretsに登録（機密値。
+# <SLACK_WEBHOOK_URL> は実際のWebhook URLに置き換えること。値をコマンド履歴や
+# ログに残さないよう、対話シェルでは先頭にスペースを入れる等の配慮をする）
+gh secret set SLACK_WEBHOOK_URL \
+  --body "<SLACK_WEBHOOK_URL>" \
+  --repo kazuki1016/FDE_ENTRY_HO
+
+# 登録確認（値そのものは表示されない）
+gh variable list --repo kazuki1016/FDE_ENTRY_HO
+gh secret list --repo kazuki1016/FDE_ENTRY_HO
+```
 
 ---
 
@@ -436,12 +456,12 @@ spec_infra.md 7章と同じ「入力 | 操作 | 期待出力」の3列形式で�
 
 | # | 箇所 | 内容 | 対応方針 |
 |---|---|---|---|
-| 1 | 3.3 権限ポリシー | `fde-rag/aws-secrets` の完全 ARN（`arn:aws:secretsmanager:ap-northeast-1:215552491011:secret:fde-rag/aws-secrets-XXXXXX`。末尾のランダムサフィックスが未確認）。ユーザーの判断を要する項目ではなく、`aws secretsmanager describe-secret` で取得すれば解消する実装前タスク | `aws secretsmanager describe-secret --secret-id fde-rag/aws-secrets --query ARN --output text` で取得し、ポリシーに記載する |
+| ~~1~~ | ~~3.3 権限ポリシー~~ | **解消**: `fde-rag/aws-secrets` の完全ARNを `aws secretsmanager describe-secret` で取得し確定した（`arn:aws:secretsmanager:ap-northeast-1:215552491011:secret:fde-rag/aws-secrets-ELLHtC`） | 対応不要 |
 | ~~2~~ | ~~4.1 削除対象 Secrets~~ | **解消（ユーザー確認済み）**: `AWS_BEARER_TOKEN_BEDROCK` はdeploy.ymlが直接参照しているため GitHub Secrets から削除しない。BASIC_AUTH_USERNAME・BASIC_AUTH_PASSWORDの2値のみ削除する（req_scheduled-eval.md 要件3は本値に関して一部未達となるが、意図的な判断） | 対応不要 |
 
 ### 推奨デフォルト値（PENDING）として記載した項目
 
 | # | 箇所 | 内容 | 推奨値 |
 |---|---|---|---|
-| P1 | 3.1 / 4.2 | IAMロール名・対応する GitHub Variable 名 | `GitHubActionsScheduledEvalRole`・`AWS_SCHEDULED_EVAL_ROLE_ARN`（既存ロールの命名規則を踏襲） |
-| P2 | 4.4 / 2.5 | `SLACK_WEBHOOK_URL` の保存場所 | GitHub Secrets に `SLACK_WEBHOOK_URL` として保存する（推奨）。CLAUDE.md 6章の「長期的なAWSアクセスキーを保存しない」制約は AWS 認証情報に限定されており、Slack Incoming Webhook URL には適用されない。Secrets Manager への同居（AWS認証情報と混在）は Simplicity First に反するため不採用。ユーザー確認後、4.4章の `[推奨デフォルト値（PENDING）]` タグを除去すること |
+| ~~P1~~ | ~~3.1 / 4.2~~ | **解消**: IAMロール名・対応する GitHub Variable 名 | `GitHubActionsScheduledEvalRole`・`AWS_SCHEDULED_EVAL_ROLE_ARN`で確定・作成済み（既存ロールの命名規則を踏襲。ARN: `arn:aws:iam::215552491011:role/GitHubActionsScheduledEvalRole`） |
+| ~~P2~~ | ~~4.4 / 2.5~~ | **解消**: `SLACK_WEBHOOK_URL` の保存場所 | GitHub Secrets に `SLACK_WEBHOOK_URL` として保存する方針で確定し、`gh secret set`で登録済み。CLAUDE.md 6章の「長期的なAWSアクセスキーを保存しない」制約は AWS 認証情報に限定されており、Slack Incoming Webhook URL には適用されない |
