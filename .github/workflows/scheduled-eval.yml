@@ -1,0 +1,140 @@
+# 定期eval実行ワークフロー（毎日 JST 9:00頃、CLAUDE.md 5.2章・spec_scheduled-eval.md参照）。
+#
+# deploy.ymlはeval実行を含まない（毎デプロイでのBedrock課金・ChromaDB準備の複雑化を
+# 避けるため。CLAUDE.md 5.2章）。本ワークフローはそれとは別に、本番の健全性を日次で
+# 監視する目的で、正解率（run_eval.py）と応答時間・コールドスタート（run_latency_eval.py）
+# の両方を1日1回だけ実行し、結果を合否に関わらずSlackへ通知する。
+#
+# 認証情報（Bedrock APIキー・Basic認証クレデンシャル）はGitHub Secretsに直接置かず、
+# OIDC連携のIAMロール（GitHubActionsScheduledEvalRole）経由でSecrets Manager
+# （fde-rag/aws-secrets）から実行時に取得する（spec_scheduled-eval.md 2章・3章）。
+#
+# 事前設定が必要（登録済み。spec_scheduled-eval.md 5章参照）:
+#   Secrets:   SLACK_WEBHOOK_URL（Slack Incoming Webhook URL）
+#   Variables: AWS_SCHEDULED_EVAL_ROLE_ARN（OIDC用IAMロールARN）
+#              AWS_REGION（deploy.ymlと共通）
+#              RAG_ENDPOINT_URL（デプロイ済みCloudFrontのURL）
+name: Scheduled Eval
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 毎日 UTC 00:00 = JST 9:00（GitHub Actionsのcronはtimezone指定不可）
+  workflow_dispatch: {}
+
+# OIDCでAWSに接続するために必要（長期アクセスキーは使用しない）
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_SCHEDULED_EVAL_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Retrieve secrets from Secrets Manager
+        run: |
+          SECRET_JSON=$(aws secretsmanager get-secret-value \
+            --secret-id fde-rag/aws-secrets \
+            --query SecretString \
+            --output text)
+          BEDROCK_KEY=$(echo "$SECRET_JSON" | python3 -c \
+            "import sys,json; print(json.load(sys.stdin)['AWS_BEARER_TOKEN_BEDROCK'])")
+          USERNAME=$(echo "$SECRET_JSON" | python3 -c \
+            "import sys,json; print(json.load(sys.stdin)['BASIC_AUTH_USERNAME'])")
+          PASSWORD=$(echo "$SECRET_JSON" | python3 -c \
+            "import sys,json; print(json.load(sys.stdin)['BASIC_AUTH_PASSWORD'])")
+          echo "::add-mask::$BEDROCK_KEY"
+          echo "::add-mask::$USERNAME"
+          echo "::add-mask::$PASSWORD"
+          echo "AWS_BEARER_TOKEN_BEDROCK=$BEDROCK_KEY" >> "$GITHUB_ENV"
+          echo "BASIC_AUTH_USERNAME=$USERNAME" >> "$GITHUB_ENV"
+          echo "BASIC_AUTH_PASSWORD=$PASSWORD" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build ChromaDB
+        # CIランナーはdata/chroma_db/を持たない（.gitignore対象）ため、
+        # リポジトリに同梱済みのPDFから都度生成する（deploy.ymlと同様）。
+        run: PYTHONPATH=src python -m ingest
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ env.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+
+      - name: Run correctness eval (run_eval.py)
+        id: correctness
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          PYTHONPATH=src python evals/run_eval.py 2>&1 | tee /tmp/correctness_result.txt
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ env.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+
+      - name: Run latency eval (run_latency_eval.py)
+        id: latency
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          PYTHONPATH=src python evals/run_latency_eval.py 2>&1 | tee /tmp/latency_result.txt
+        env:
+          RAG_ENDPOINT_URL: ${{ vars.RAG_ENDPOINT_URL }}
+          BASIC_AUTH_USERNAME: ${{ env.BASIC_AUTH_USERNAME }}
+          BASIC_AUTH_PASSWORD: ${{ env.BASIC_AUTH_PASSWORD }}
+
+      - name: Notify Slack
+        if: always()
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          CORRECTNESS_OUTCOME: ${{ steps.correctness.outcome }}
+          LATENCY_OUTCOME: ${{ steps.latency.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          SCORE_LINE=$(grep -m1 'スコア:' /tmp/correctness_result.txt 2>/dev/null || echo '（取得失敗）')
+          LATENCY_SUMMARY=$(grep -m1 '最小:' /tmp/latency_result.txt 2>/dev/null || echo '（取得失敗）')
+          COLD_LINE=$(grep -m1 '1問目' /tmp/latency_result.txt 2>/dev/null || echo '（取得失敗）')
+          export SCORE_LINE LATENCY_SUMMARY COLD_LINE
+          python3 << 'EOF'
+          import json, os, subprocess, sys
+          c = os.environ['CORRECTNESS_OUTCOME']
+          l = os.environ['LATENCY_OUTCOME']
+          c_icon = ':white_check_mark:' if c == 'success' else ':x:'
+          l_icon = ':white_check_mark:' if l == 'success' else ':x:'
+          overall = ':white_check_mark: 全eval合格' if c == 'success' and l == 'success' else ':x: eval失敗あり'
+          score = os.environ.get('SCORE_LINE', '（取得失敗）')
+          lat = os.environ.get('LATENCY_SUMMARY', '（取得失敗）')
+          cold = os.environ.get('COLD_LINE', '（取得失敗）')
+          run_url = os.environ['RUN_URL']
+          text = (
+              f'*日次eval結果 — {overall}*\n'
+              f'{c_icon} 正解率eval: {c}  |  {score}\n'
+              f'{l_icon} レイテンシeval: {l}  |  {lat}  |  {cold}\n'
+              f'<{run_url}|ワークフロー実行ログ>'
+          )
+          payload = json.dumps({'text': text})
+          r = subprocess.run(
+              ['curl', '-sf', '-X', 'POST', os.environ['SLACK_WEBHOOK_URL'],
+               '-H', 'Content-Type: application/json', '-d', payload]
+          )
+          sys.exit(r.returncode)
+          EOF
+
+      - name: Fail if either eval failed
+        if: steps.correctness.outcome == 'failure' || steps.latency.outcome == 'failure'
+        run: |
+          echo "正解率eval: ${{ steps.correctness.outcome }}"
+          echo "応答時間eval: ${{ steps.latency.outcome }}"
+          exit 1
