@@ -18,7 +18,7 @@ name: Scheduled Eval
 
 on:
   schedule:
-    - cron: "0 0 * * *" # 毎日 UTC 00:00 = JST 9:00（GitHub Actionsのcronはtimezone指定不可）
+    # - cron: "0 0 * * *" # 毎日 UTC 00:00 = JST 9:00（GitHub Actionsのcronはtimezone指定不可）
   workflow_dispatch: {}
 
 # OIDCでAWSに接続するために必要（長期アクセスキーは使用しない）
